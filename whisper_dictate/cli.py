@@ -16,20 +16,46 @@ def setup_logging(level: str) -> None:
     
     RESPONSIBILITY: Configure logging with specified level and format.
     BOUNDARIES:
-    - DOES: Set up logging configuration
+    - DOES: Set up logging configuration with file output
     - DOES NOT: Handle log rotation or file management
     
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
     """
-    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(
-        level=getattr(logging, level.upper()),
-        format=log_format,
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+    import os
+    from pathlib import Path
+    
+    # Create log directory
+    log_dir = Path.home() / '.local' / 'share' / 'whisper-dictate'
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    log_file = log_dir / 'whisper-dictate.log'
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S'
     )
+    
+    # Setup root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, level.upper()))
+    
+    # Clear existing handlers to avoid duplicates
+    root_logger.handlers.clear()
+    
+    # File handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(getattr(logging, level.upper()))
+    file_handler.setFormatter(formatter)
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(getattr(logging, level.upper()))
+    console_handler.setFormatter(formatter)
+    
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
 
 
 @click.group()
@@ -124,10 +150,16 @@ def info(ctx: click.Context) -> None:
     click.echo("\n📋 Clipboard Tools:")
     for tool in info["clipboard_tools"]:
         click.echo(f"  • {tool}")
-    
     click.echo("\n⚙️  Configuration:")
     for key, value in info["config"].items():
         click.echo(f"  • {key}: {value}")
+
+    click.echo("\n📊 Logging:")
+    from pathlib import Path
+    log_file = Path.home() / '.local' / 'share' / 'whisper-dictate' / 'whisper-dictate.log'
+    click.echo(f"  • Log file: {log_file}")
+    click.echo(f"  • View logs: tail -f {log_file}")
+
 
 
 if __name__ == "__main__":
