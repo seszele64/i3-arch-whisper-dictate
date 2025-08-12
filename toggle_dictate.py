@@ -24,11 +24,48 @@ PID_FILE = Path.home() / '.whisper-dictate-pid'
 AUDIO_FILE = Path.home() / '.whisper-dictate-audio.wav'
 
 def setup_logging():
-    """Setup basic logging."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+    """WHY THIS EXISTS: Logging needs to be configured consistently
+    across the application for debugging and monitoring.
+    
+    RESPONSIBILITY: Configure logging with file output to whisper-dictate.log.
+    BOUNDARIES:
+    - DOES: Set up logging configuration with file output
+    - DOES NOT: Handle log rotation or file management
+    """
+    import os
+    from pathlib import Path
+    
+    # Create log directory
+    log_dir = Path.home() / '.local' / 'share' / 'whisper-dictate'
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    log_file = log_dir / 'whisper-dictate.log'
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S'
     )
+    
+    # Setup root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Clear existing handlers to avoid duplicates
+    root_logger.handlers.clear()
+    
+    # File handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
 
 def is_recording():
     """Check if currently recording."""
@@ -61,13 +98,13 @@ def start_background_recording(config):
         PID_FILE.write_text(str(process.pid))
         STATE_FILE.touch()
         
-        print("🎤 Recording started...")
+        logging.info("Recording started")
         os.system('notify-send "Dictation" "Recording started... press again to stop"')
         
         return process
         
     except Exception as e:
-        print(f"❌ Failed to start recording: {e}")
+        logging.error(f"Failed to start recording: {e}")
         os.system(f'notify-send "Dictation Error" "Failed to start recording: {e}"')
         return None
 
@@ -95,17 +132,17 @@ def stop_background_recording():
         return True
         
     except Exception as e:
-        print(f"❌ Error stopping recording: {e}")
+        logging.error(f"Error stopping recording: {e}")
         return False
 
 def transcribe_audio(config):
     """Transcribe the recorded audio."""
     try:
         if not AUDIO_FILE.exists():
-            print("❌ No audio file found")
+            logging.error("No audio file found")
             return None
             
-        print("🧠 Transcribing...")
+        logging.info("Starting transcription")
         transcriber = WhisperTranscriber(config.openai)
         result = transcriber.transcribe_audio(AUDIO_FILE)
         
@@ -113,13 +150,13 @@ def transcribe_audio(config):
         clipboard = ClipboardManager()
         clipboard.copy_to_clipboard(result.text)
         
-        print(f"📝 Transcription: {result.text}")
+        logging.info(f"Transcription completed: {result.text}")
         os.system(f'notify-send "Dictation" "Transcription: {result.text[:50]}..."')
         
         return result.text
         
     except Exception as e:
-        print(f"❌ Transcription error: {e}")
+        logging.error(f"Transcription error: {e}")
         os.system(f'notify-send "Dictation Error" "Transcription failed: {e}"')
         return None
         
@@ -136,20 +173,20 @@ def main():
         config = load_config()
         
         if is_recording():
-            print("🛑 Stopping recording...")
+            logging.info("Stopping recording...")
             if stop_background_recording():
                 transcribe_audio(config)
             else:
-                print("❌ Failed to stop recording properly")
+                logging.error("Failed to stop recording properly")
         else:
             # Start new recording
             process = start_background_recording(config)
             if process is None:
-                print("❌ Failed to start recording")
+                logging.error("Failed to start recording")
                 sys.exit(1)
                 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        logging.error(f"Error: {e}")
         os.system(f'notify-send "Dictation Error" "{str(e)}"')
         # Clean up on error
         stop_background_recording()
