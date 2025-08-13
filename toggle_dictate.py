@@ -17,6 +17,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from whisper_dictate.config import load_config
 from whisper_dictate.transcription import WhisperTranscriber
 from whisper_dictate.clipboard import ClipboardManager
+from whisper_dictate.notifications import (
+    notify_recording_started,
+    notify_recording_stopped,
+    notify_error,
+    notify_stopping_transcription
+)
 
 # State and process tracking
 STATE_FILE = Path.home() / '.whisper-dictate-state'
@@ -99,13 +105,13 @@ def start_background_recording(config):
         STATE_FILE.touch()
         
         logging.info("Recording started")
-        os.system('notify-send "Dictation" "Recording started... press again to stop"')
+        notify_recording_started()
         
         return process
         
     except Exception as e:
         logging.error(f"Failed to start recording: {e}")
-        os.system(f'notify-send "Dictation Error" "Failed to start recording: {e}"')
+        notify_error(f"Failed to start recording: {e}")
         return None
 
 def stop_background_recording():
@@ -151,13 +157,13 @@ def transcribe_audio(config):
         clipboard.copy_to_clipboard(result.text)
         
         logging.info(f"Transcription completed: {result.text}")
-        os.system(f'notify-send "Dictation" "Transcription: {result.text[:50]}..."')
+        notify_recording_stopped(result.text)
         
         return result.text
         
     except Exception as e:
         logging.error(f"Transcription error: {e}")
-        os.system(f'notify-send "Dictation Error" "Transcription failed: {e}"')
+        notify_error(f"Transcription failed: {e}")
         return None
         
     finally:
@@ -174,6 +180,7 @@ def main():
         
         if is_recording():
             logging.info("Stopping recording...")
+            notify_stopping_transcription()
             if stop_background_recording():
                 transcribe_audio(config)
             else:
@@ -187,7 +194,7 @@ def main():
                 
     except Exception as e:
         logging.error(f"Error: {e}")
-        os.system(f'notify-send "Dictation Error" "{str(e)}"')
+        notify_error(str(e))
         # Clean up on error
         stop_background_recording()
         if AUDIO_FILE.exists():
