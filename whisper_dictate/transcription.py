@@ -7,7 +7,7 @@ from typing import Optional
 import openai
 from openai import OpenAI
 
-from .config import OpenAIConfig
+from whisper_dictate.config import OpenAIConfig
 
 logger = logging.getLogger(__name__)
 
@@ -53,14 +53,15 @@ class WhisperTranscriber:
     - USED BY: DictationService for transcription
     """
     
-    def __init__(self, config: OpenAIConfig) -> None:
+    def __init__(self, config: OpenAIConfig, client: Optional[OpenAI] = None) -> None:
         """Initialize Whisper transcriber with configuration.
         
         Args:
             config: OpenAI API configuration
+            client: Optional OpenAI client for testing (defaults to new instance)
         """
         self.config = config
-        self.client = OpenAI(api_key=config.api_key)
+        self.client = client or OpenAI(api_key=config.api_key)
     
     def transcribe_audio(self, audio_file: Path) -> TranscriptionResult:
         """WHY THIS EXISTS: Audio transcription needs to be handled consistently
