@@ -121,9 +121,10 @@ def notify_recording_stopped(text_preview: str = "") -> bool:
     """
     body = "Recording stopped and processing..."
     if text_preview:
-        preview = text_preview[:50]
-        if len(text_preview) > 50:
-            preview += "..."
+        if len(text_preview) > 52:
+            preview = text_preview[:49] + "..."  # 49 + 3 = 52 total
+        else:
+            preview = text_preview
         body = f"Transcription: {preview}"
     
     return send_notification(
