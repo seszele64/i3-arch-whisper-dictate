@@ -23,6 +23,7 @@ from whisper_dictate.notifications import (
     notify_error,
     notify_stopping_transcription
 )
+from whisper_dictate.dunst_monitor import ensure_dunst_running
 
 # State and process tracking
 STATE_FILE = Path.home() / '.whisper-dictate-state'
@@ -176,6 +177,10 @@ def main():
     setup_logging()
     
     try:
+        # Ensure dunst is running for notifications
+        if not ensure_dunst_running():
+            logging.warning("Dunst notification daemon not available - notifications may not work")
+        
         config = load_config()
         
         if is_recording():
