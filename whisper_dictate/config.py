@@ -21,7 +21,7 @@ class AudioConfig(BaseModel):
     sample_rate: int = Field(default=16000, description="Audio sample rate in Hz")
     channels: int = Field(default=1, description="Number of audio channels")
     duration: float = Field(default=5.0, description="Maximum recording duration in seconds")
-    device: Optional[int] = Field(default=None, description="Audio input device index")
+    device: Optional[int | str] = Field(default=None, description="Audio input device index or name")
 
 
 class OpenAIConfig(BaseModel):
