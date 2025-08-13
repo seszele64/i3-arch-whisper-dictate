@@ -1,164 +1,151 @@
-# Whisper Dictate
+# Whisper Dictate - Global Key Binding
 
-A simple, strongly-typed Python script for voice dictation using OpenAI Whisper API on Arch Linux. Records audio, transcribes it using OpenAI's cloud-based Whisper API, and copies the result to your clipboard.
+A Python script for voice dictation using OpenAI Whisper API with global key binding support on Arch Linux.
 
 ## Features
 
-- 🎤 **Audio Recording**: Configurable duration and quality
+- 🎤 **Toggle Recording**: Single key press to start/stop recording
 - 🧠 **AI Transcription**: Uses OpenAI Whisper API for accurate speech-to-text
 - 📋 **Clipboard Integration**: Automatically copies transcription to clipboard
-- 🔧 **Strong Typing**: Full type annotations for better IDE support
-- 📝 **Comprehensive Logging**: Detailed logs for debugging
-- ⚙️ **Configurable**: Environment-based configuration
+- 🔔 **System Notifications**: Visual feedback via notify-send
+- 🔧 **Global Key Binding**: Works with any window manager
+- ⚡ **Fast Response**: Minimal latency for real-time usage
 
-## Installation
+## Quick Start
 
-### System Dependencies (Arch Linux)
-
+### 1. Install Dependencies
 ```bash
-# Install system dependencies
-sudo pacman -S python python-pip ffmpeg portaudio
-
-# Install clipboard tools (at least one of these)
-sudo pacman -S xclip xsel wl-clipboard
+# Run the installation script
+chmod +x install_global.sh
+./install_global.sh
 ```
 
-### Python Dependencies
-
+### 2. Set OpenAI API Key
 ```bash
-# Install Python dependencies
-pip install -r requirements.txt
+export OPENAI_API_KEY="your-api-key-here"
+# Or add to ~/.bashrc for persistence
+echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.bashrc
 ```
 
-### Configuration
+### 3. Set Global Key Binding
 
-1. **Get OpenAI API Key**: Visit [OpenAI Platform](https://platform.openai.com/api-keys)
-2. **Set Environment Variable**:
-   ```bash
-   export OPENAI_API_KEY="your-api-key-here"
-   ```
-3. **Optional**: Copy `.env.example` to `.env` and customize:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
+#### i3 Window Manager
+Add to `~/.config/i3/config`:
+```bash
+bindsym $mod+d exec --no-startup-id whisper-dictate
+```
+
+#### KDE Plasma
+1. System Settings → Shortcuts → Custom Shortcuts
+2. Add Command: `whisper-dictate`
+3. Set your preferred key combination
+
+#### GNOME
+1. Settings → Keyboard → Custom Shortcuts
+2. Add custom shortcut
+3. Command: `whisper-dictate`
+
+#### Sway
+Add to `~/.config/sway/config`:
+```bash
+bindsym $mod+d exec whisper-dictate
+```
 
 ## Usage
 
 ### Basic Usage
+1. **Press your bound key** to start recording
+2. **Speak naturally** - no time limit
+3. **Press the same key again** to stop and transcribe
+4. **Transcription is automatically copied to clipboard**
+
+### Manual Installation
+If you prefer manual installation:
 
 ```bash
-# Record for default duration (5 seconds)
-python -m whisper_dictate dictate
+# Install system dependencies
+sudo pacman -S python python-pip ffmpeg portaudio xclip xsel wl-clipboard
 
-# Record for specific duration
-python -m whisper_dictate dictate --duration 10
+# Install Python dependencies
+pip install --user -r requirements.txt
 
-# Using the main script
-python main.py dictate
-```
+# Make script executable
+chmod +x toggle_dictate.py
 
-### Commands
-
-- **`dictate`**: Start recording and transcribe
-- **`info`**: Display system information and available devices
-
-### Examples
-
-```bash
-# Record for 8 seconds
-python main.py dictate --duration 8
-
-# Check system information
-python main.py info
-
-# Run with debug logging
-python main.py --log-level DEBUG dictate
+# Create symlink
+ln -sf "$(pwd)/toggle_dictate.py" ~/.local/bin/whisper-dictate
 ```
 
 ## Configuration
 
 ### Environment Variables
+Create a `.env` file in the same directory:
+```bash
+OPENAI_API_KEY=your-api-key-here
+LOG_LEVEL=INFO
+COPY_TO_CLIPBOARD=true
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENAI_API_KEY` | - | **Required** OpenAI API key |
-| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
-| `AUDIO_DURATION` | `5.0` | Default recording duration in seconds |
-| `COPY_TO_CLIPBOARD` | `true` | Whether to copy transcription to clipboard |
-
-### Audio Configuration
-
-You can override audio settings by modifying the configuration in code or extending the config system.
+### Audio Settings
+The script uses sensible defaults:
+- Sample rate: 16kHz (optimal for Whisper)
+- Channels: 1 (mono)
+- Format: 16-bit WAV
 
 ## Troubleshooting
 
-### Common Issues
+### Dependencies Missing
+```bash
+# Install missing Python packages
+pip install --user -r requirements.txt
 
-1. **No audio devices found**:
-   ```bash
-   python main.py info
-   ```
-   Check if your microphone is connected and recognized.
+# Install system packages
+sudo pacman -S python-pip ffmpeg portaudio
+```
 
-2. **Clipboard not working**:
-   - Ensure `xclip`, `xsel`, or `wl-copy` is installed
-   - Run `python main.py info` to see available clipboard tools
+### No Audio Devices
+```bash
+# List available audio devices
+python -c "import sounddevice as sd; print(sd.query_devices())"
+```
 
-3. **OpenAI API errors**:
-   - Verify your API key is set correctly
-   - Check your OpenAI account has credits
-   - Ensure network connectivity
+### Clipboard Not Working
+```bash
+# Install clipboard tools
+sudo pacman -S xclip xsel wl-clipboard
+```
 
 ### Debug Mode
-
-Run with debug logging for detailed information:
 ```bash
-python main.py --log-level DEBUG dictate
+# Run with debug logging
+LOG_LEVEL=DEBUG python toggle_dictate.py
+```
+
+find logs using
+```bash
+tail -f ~/.local/share/whisper-dictate/whisper-dictate.log
 ```
 
 ## Architecture
 
-The application follows a clean architecture with clear separation of concerns:
+The toggle system uses:
+- **Global state management** to track recording across invocations
+- **Thread-safe audio capture** with proper cleanup
+- **System notifications** for user feedback
+- **Error handling** for robust operation
 
-- **`config.py`**: Configuration management with Pydantic models
-- **`audio.py`**: Audio recording functionality
-- **`transcription.py`**: OpenAI Whisper API integration
-- **`clipboard.py`**: Linux clipboard operations
-- **`dictation.py`**: Main service orchestration
-- **`cli.py`**: Command-line interface
+## Key Files
 
-## Development
+- **`toggle_dictate.py`** - Main toggle script for global binding
+- **`install_global.sh`** - Automated installation script
+- **`whisper_dictate/`** - Core modules (reused from previous implementation)
 
-### Project Structure
+## Usage Tips
 
-```
-whisper-dictate/
-├── whisper_dictate/
-│   ├── __init__.py
-│   ├── __main__.py
-│   ├── config.py
-│   ├── audio.py
-│   ├── transcription.py
-│   ├── clipboard.py
-│   ├── dictation.py
-│   └── cli.py
-├── main.py
-├── requirements.txt
-├── .env.example
-└── README.md
-```
+- **Speak clearly** and at normal pace
+- **Use in quiet environment** for best results
+- **Test with short recordings** first
+- **Check system notifications** for status updates
+- **Restart window manager** after setting key bindings
 
-### Running Tests
-
-```bash
-# Install in development mode
-pip install -e .
-
-# Run basic functionality test
-python -c "from whisper_dictate.config import load_config; print('Config loaded successfully')"
-```
-
-## License
-
-MIT License - feel free to use and modify as needed.
+The system is designed to be fast and responsive, with minimal latency between key press and recording start/stop.
