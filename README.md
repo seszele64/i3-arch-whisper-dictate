@@ -33,13 +33,38 @@ export OPENAI_API_KEY="your-api-key-here"
 echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.bashrc
 ```
 
-### 3. Set Global Key Binding
+### 3. Add global bind to the script
 
-#### i3 Window Manager
-Add to `~/.config/i3/config`:
+- run setup_i3.sh (fastest) -> check config out though, as it edits your i3 config
+  - adds bind to the path of python script
+**
+`OR`
+**
+
+1. Generate run_whisper_dictate by running 
+
 ```bash
-bindsym $mod+d exec --no-startup-id whisper-dictate
+chmod +x generate_run_script.sh
+./generate_run_script.sh
 ```
+
+1. (Optional) Copy the run_whisper_dictate script to preferred location
+
+```bash
+cp run_whisper_dictate.sh ~/.config/scripts/run_whisper_dictate.sh
+```
+
+3. add bind to run `run_whisper_dictate.sh` to i3wm config
+
+usually at `~/.config/i3/config`
+
+```
+# Bind whisper dictate
+## Voice dictation toggle
+bindsym $mod+z exec ~/.config/scripts/run_whisper_dictate.sh
+```
+
+to use modification key + z in this case to run whisper dictation (on/off) switch on mod+z
 
 ## Usage
 
@@ -61,9 +86,11 @@ pip install --user -r requirements.txt
 
 # Make script executable
 chmod +x toggle_dictate.py
+```
 
-# Create symlink
-ln -sf "$(pwd)/toggle_dictate.py" ~/.local/bin/whisper-dictate
+add to i3 config:
+```bash
+bindsym $mod+z exec --no-startup-id python3 `absolute/path/to/toggle_dictate.py'
 ```
 
 ## Configuration
