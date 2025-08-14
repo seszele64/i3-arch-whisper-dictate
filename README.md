@@ -15,10 +15,16 @@ A Python script for voice dictation using OpenAI Whisper API with global key bin
 
 ### 1. Install Dependencies
 ```bash
-# Run the installation script
-chmod +x install_global.sh
-./install_global.sh
+# Install system dependencies
+sudo pacman -S python python-pip ffmpeg portaudio xclip xsel wl-clipboard dunst
+
+# Install Python dependencies
+pip install --user -r requirements.txt
+
+# Make script executable
+chmod +x toggle_dictate.py
 ```
+
 
 ### 2. Set OpenAI API Key
 ```bash
@@ -33,22 +39,6 @@ echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.bashrc
 Add to `~/.config/i3/config`:
 ```bash
 bindsym $mod+d exec --no-startup-id whisper-dictate
-```
-
-#### KDE Plasma
-1. System Settings → Shortcuts → Custom Shortcuts
-2. Add Command: `whisper-dictate`
-3. Set your preferred key combination
-
-#### GNOME
-1. Settings → Keyboard → Custom Shortcuts
-2. Add custom shortcut
-3. Command: `whisper-dictate`
-
-#### Sway
-Add to `~/.config/sway/config`:
-```bash
-bindsym $mod+d exec whisper-dictate
 ```
 
 ## Usage
@@ -137,7 +127,7 @@ The toggle system uses:
 ## Key Files
 
 - **`toggle_dictate.py`** - Main toggle script for global binding
-- **`install_global.sh`** - Automated installation script
+- **`setup_i3.sh`** - i3 window manager setup script
 - **`whisper_dictate/`** - Core modules (reused from previous implementation)
 
 ## Usage Tips
