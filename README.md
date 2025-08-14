@@ -8,7 +8,6 @@ A Python script for voice dictation using OpenAI Whisper API with global key bin
 - 🧠 **AI Transcription**: Uses OpenAI Whisper API for accurate speech-to-text
 - 📋 **Clipboard Integration**: Automatically copies transcription to clipboard
 - 🔔 **System Notifications**: Visual feedback via notify-send
-- 🔧 **Global Key Binding**: Works with any window manager
 - ⚡ **Fast Response**: Minimal latency for real-time usage
 
 ## Quick Start
