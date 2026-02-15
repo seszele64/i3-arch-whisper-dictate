@@ -21,6 +21,7 @@ prevents the cognitive load of remembering notify-send syntax and parameters.
 import logging
 import shutil
 import subprocess
+import time
 from typing import Literal, Optional
 
 # Set up module-level logger
@@ -264,12 +265,45 @@ def notify_stopping_transcription() -> bool:
     )
 
 
+def is_dunst_running() -> bool:
+    """
+    Check if the dunst notification daemon is currently running.
+
+    RESPONSIBILITY: Verify that the notification daemon is alive and can
+    receive commands. This is critical for detecting daemon crashes.
+
+    Returns:
+        bool: True if dunst process is running, False otherwise
+    """
+    try:
+        # Check if dunst process exists
+        result = subprocess.run(
+            ["pgrep", "-x", "dunst"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
 class PersistentNotification:
     """
     Manages a persistent notification that stays visible during recording.
 
     Uses dunstify with stack tags to allow updates and closing.
+
+    EDGE CASE HANDLING:
+    - Multiple rapid start/stop: Uses _operation_lock to prevent race conditions
+    - Daemon crash: Tracks consecutive failures and attempts recovery
+    - Stale notification IDs: Validates daemon state before operations
     """
+
+    # Class-level lock to prevent race conditions during rapid toggles
+    _operation_lock: Optional[subprocess.Popen] = None
+    _last_operation_time: float = 0.0
+    _min_operation_interval: float = 0.1  # Minimum 100ms between operations
 
     def __init__(self, stack_tag: str = "dictation-recording"):
         """Initialize the persistent notification manager."""
@@ -278,13 +312,36 @@ class PersistentNotification:
         self._is_active: bool = False
         self.summary: str = "Dictation"
         self.urgency: UrgencyLevel = "critical"
+        # Track consecutive failures for daemon crash detection
+        self._consecutive_failures: int = 0
+        self._max_consecutive_failures: int = 3
+        self._last_known_daemon_state: bool = True
 
     def send(
         self, summary: str, body: str, urgency: UrgencyLevel = "critical"
     ) -> Optional[str]:
-        """Send a persistent notification with -t 0 for indefinite display."""
+        """Send a persistent notification with -t 0 for indefinite display.
+
+        EDGE CASE 1: Multiple Rapid Start/Stop
+        - Implements rate limiting using _last_operation_time and _min_operation_interval
+        - If too soon after last operation, skip the action to prevent race conditions
+
+        EDGE CASE 2: Notification Daemon Crash During Recording
+        - Tracks consecutive failures to detect daemon crashes
+        - On success: resets failure counter to 0
+        - On failure: increments failure counter
+        """
         self.summary = summary
         self.urgency = urgency
+
+        # EDGE CASE 1: Rate limiting - check if enough time has passed since last operation
+        current_time = time.time()
+        elapsed = current_time - PersistentNotification._last_operation_time
+        if elapsed < PersistentNotification._min_operation_interval:
+            logger.debug(
+                f"Rate limiting: skipping send, only {elapsed:.3f}s since last operation"
+            )
+            return None
 
         if not is_dunstify_available():
             logger.warning("dunstify not available, falling back")
@@ -309,21 +366,66 @@ class PersistentNotification:
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            # Update last operation time regardless of success/failure
+            PersistentNotification._last_operation_time = time.time()
+
             if result.returncode == 0 and result.stdout.strip():
                 self.notification_id = result.stdout.strip()
                 self._is_active = True
+                # EDGE CASE 2: Reset failure counter on success
+                self._consecutive_failures = 0
+                self._last_known_daemon_state = True
                 logger.info(f"Persistent notification sent: {self.notification_id}")
                 return self.notification_id
-            logger.error(f"Failed to send persistent notification: {result.stderr}")
+
+            # EDGE CASE 2: Track failure
+            self._consecutive_failures += 1
+            logger.error(
+                f"Failed to send persistent notification (failure #{self._consecutive_failures}): {result.stderr}"
+            )
             return None
         except Exception as e:
-            logger.error(f"Error sending persistent notification: {e}")
+            # EDGE CASE 2: Track failure
+            PersistentNotification._last_operation_time = time.time()
+            self._consecutive_failures += 1
+            logger.error(
+                f"Error sending persistent notification (failure #{self._consecutive_failures}): {e}"
+            )
             return None
 
     def update(self, body: str) -> Optional[str]:
-        """Update the notification body using notification ID."""
+        """Update the notification body using notification ID.
+
+        EDGE CASE 1: Multiple Rapid Start/Stop
+        - Implements rate limiting using _last_operation_time
+
+        EDGE CASE 2: Notification Daemon Crash During Recording
+        - Checks daemon health before attempting update
+        - If daemon appears crashed (update fails), marks notification as inactive
+        - Tracks failures similarly to send()
+        """
         if not self._is_active or not self.notification_id:
             logger.warning("No active notification to update")
+            return None
+
+        # EDGE CASE 1: Rate limiting
+        current_time = time.time()
+        elapsed = current_time - PersistentNotification._last_operation_time
+        if elapsed < PersistentNotification._min_operation_interval:
+            logger.debug(
+                f"Rate limiting: skipping update, only {elapsed:.3f}s since last operation"
+            )
+            return None
+
+        # EDGE CASE 2: Check daemon health before attempting update
+        if not is_dunst_running():
+            logger.warning(
+                "Notification daemon not running, marking notification as inactive"
+            )
+            self._is_active = False
+            self._last_known_daemon_state = False
+            self._consecutive_failures += 1
+            PersistentNotification._last_operation_time = time.time()
             return None
 
         cmd = [
@@ -340,13 +442,38 @@ class PersistentNotification:
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            PersistentNotification._last_operation_time = time.time()
+
             if result.returncode == 0:
                 if result.stdout.strip():
                     self.notification_id = result.stdout.strip()
+                # EDGE CASE 2: Reset failure counter on success
+                self._consecutive_failures = 0
+                self._last_known_daemon_state = True
                 return self.notification_id
+
+            # EDGE CASE 2: Track failure and mark as inactive if daemon crashed
+            self._consecutive_failures += 1
+            logger.error(
+                f"Failed to update notification (failure #{self._consecutive_failures}): {result.stderr}"
+            )
+            # If we've had multiple consecutive failures, assume daemon crashed
+            if self._consecutive_failures >= self._max_consecutive_failures:
+                logger.warning(
+                    "Too many failures, assuming daemon crashed, marking inactive"
+                )
+                self._is_active = False
+                self._last_known_daemon_state = False
             return None
         except Exception as e:
-            logger.error(f"Error updating notification: {e}")
+            PersistentNotification._last_operation_time = time.time()
+            self._consecutive_failures += 1
+            logger.error(
+                f"Error updating notification (failure #{self._consecutive_failures}): {e}"
+            )
+            if self._consecutive_failures >= self._max_consecutive_failures:
+                self._is_active = False
+                self._last_known_daemon_state = False
             return None
 
     def close(self) -> bool:

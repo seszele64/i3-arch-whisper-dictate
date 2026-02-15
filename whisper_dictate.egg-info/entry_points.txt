@@ -1,0 +1,2 @@
+[console_scripts]
+whisper-dictate = whisper_dictate.cli:cli

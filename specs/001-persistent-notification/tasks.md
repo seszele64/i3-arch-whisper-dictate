@@ -76,9 +76,9 @@
 - [x] Status: complete
 
 ### T8: Handle edge cases
-- [ ] Multiple rapid start/stop
-- [ ] Notification daemon crash during recording
-- [ ] Status: pending
+- [x] Multiple rapid start/stop
+- [x] Notification daemon crash during recording
+- [x] Status: complete
 
 ---
 
