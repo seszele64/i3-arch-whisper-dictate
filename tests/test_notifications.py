@@ -12,6 +12,7 @@ from whisper_dictate.notifications import (
     notify_stopping_transcription,
     PersistentNotification,
     notify_recording_persistent_start,
+    notify_recording_persistent_start_blocking,
     notify_recording_persistent_update,
     notify_recording_persistent_stop,
     is_dunstify_available,
@@ -322,6 +323,8 @@ class TestPersistentNotification:
                 "-t",
                 "0",
                 "-p",
+                "-A",
+                "stop,Stop Recording",
                 "Test Title",
                 "Test Body",
             ],
@@ -351,6 +354,8 @@ class TestPersistentNotification:
                 "-t",
                 "0",
                 "-p",
+                "-A",
+                "stop,Stop Recording",
                 "Test Title",
                 "Test Body",
             ],
@@ -577,6 +582,36 @@ class TestPersistentNotification:
         assert result is False
         assert notification._is_active is False
 
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_send_action_callback_returns_stop(self, mock_run, mock_dunstify_available):
+        """Test that send() returns 'stop' when user clicks action button."""
+        mock_dunstify_available.return_value = True
+        # Simulate user clicking the stop action button - dunstify returns "stop"
+        mock_run.return_value = Mock(returncode=0, stdout="stop\n", stderr="")
+
+        notification = PersistentNotification()
+        result = notification.send("Test Title", "Test Body")
+
+        assert result == "stop"
+        # Notification should be closed
+        assert notification._is_active is False
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_send_blocking_mode_adds_wait_flag(self, mock_run, mock_dunstify_available):
+        """Test that -w flag is added when wait_for_action=True."""
+        mock_dunstify_available.return_value = True
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+
+        notification = PersistentNotification()
+        result = notification.send("Test Title", "Test Body", wait_for_action=True)
+
+        assert result == "12345"
+        # Verify -w flag is in the command
+        call_args = mock_run.call_args[0][0]
+        assert "-w" in call_args
+
 
 class TestPersistentNotificationHelpers:
     """Test the persistent notification helper functions."""
@@ -601,8 +636,10 @@ class TestPersistentNotificationHelpers:
                 "-t",
                 "0",
                 "-p",
+                "-A",
+                "stop,Stop Recording",
                 "Dictation",
-                "Recording in progress... press again to stop",
+                "Recording in progress... press again to stop\nOr use context menu (Ctrl+Shift+.) to stop",
             ],
             capture_output=True,
             text=True,
@@ -617,6 +654,78 @@ class TestPersistentNotificationHelpers:
         result = notify_recording_persistent_start()
 
         assert result is False
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_notify_recording_persistent_start_blocking_success(
+        self, mock_run, mock_dunstify_available
+    ):
+        """Test blocking persistent notification returns notification ID on success."""
+        mock_dunstify_available.return_value = True
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+
+        import whisper_dictate.notifications as notifications
+
+        # Reset global state
+        notifications._recording_notification = None
+
+        result = notify_recording_persistent_start_blocking()
+
+        assert result == "12345"
+        # Verify wait_for_action=True is passed (should include -w flag)
+        mock_run.assert_called_once_with(
+            [
+                "dunstify",
+                "-u",
+                "critical",
+                "-t",
+                "0",
+                "-p",
+                "-A",
+                "stop,Stop Recording",
+                "-w",
+                "Dictation",
+                "Recording in progress... click Stop Recording to end",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_notify_recording_persistent_start_blocking_returns_stop(
+        self, mock_run, mock_dunstify_available
+    ):
+        """Test blocking persistent notification returns 'stop' when user clicks action."""
+        mock_dunstify_available.return_value = True
+        # Simulate user clicking the stop action button
+        mock_run.return_value = Mock(returncode=0, stdout="stop\n", stderr="")
+
+        import whisper_dictate.notifications as notifications
+
+        # Reset global state
+        notifications._recording_notification = None
+
+        result = notify_recording_persistent_start_blocking()
+
+        assert result == "stop"
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    def test_notify_recording_persistent_start_blocking_failure(
+        self, mock_dunstify_available
+    ):
+        """Test blocking persistent notification when dunstify not available."""
+        mock_dunstify_available.return_value = False
+
+        import whisper_dictate.notifications as notifications
+
+        # Reset global state
+        notifications._recording_notification = None
+
+        result = notify_recording_persistent_start_blocking()
+
+        assert result is None
 
     @patch("whisper_dictate.notifications.is_dunstify_available")
     @patch("subprocess.run")
@@ -793,8 +902,10 @@ class TestNotificationLifecycleIntegration:
                 "-t",
                 "0",
                 "-p",
+                "-A",
+                "stop,Stop Recording",
                 "Dictation",
-                "Recording in progress... press again to stop",
+                "Recording in progress... press again to stop\nOr use context menu (Ctrl+Shift+.) to stop",
             ],
             capture_output=True,
             text=True,

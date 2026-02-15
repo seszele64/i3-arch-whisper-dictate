@@ -16,6 +16,21 @@ BOUNDARIES:
 
 🧠 ADHD CONTEXT: Having a single, well-documented function for notifications
 prevents the cognitive load of remembering notify-send syntax and parameters.
+
+T5b ACTION BUTTON FEATURE (FR-005):
+-----------------------------------
+Persistent notifications can include action buttons that users can click to
+trigger actions. This is implemented using dunstify's -A flag.
+
+How to use the Stop Recording action:
+1. A notification appears with a "Stop Recording" action
+2. Press Ctrl+Shift+. to open dunst's context menu (shortcut configurable in dunst)
+3. Select "Stop Recording" from the menu
+4. The action callback is triggered
+
+NOTE: The action button requires dunst context menu to be enabled (Ctrl+Shift+.)
+in your dunst configuration. The action will only work in blocking mode where
+the script waits for user input (-w flag with dunstify).
 """
 
 import logging
@@ -350,7 +365,11 @@ class PersistentNotification:
         self._last_known_daemon_state: bool = True
 
     def send(
-        self, summary: str, body: str, urgency: UrgencyLevel = "critical"
+        self,
+        summary: str,
+        body: str,
+        urgency: UrgencyLevel = "critical",
+        wait_for_action: bool = False,
     ) -> Optional[str]:
         """Send a persistent notification with -t 0 for indefinite display.
 
@@ -362,6 +381,17 @@ class PersistentNotification:
         - Tracks consecutive failures to detect daemon crashes
         - On success: resets failure counter to 0
         - On failure: increments failure counter
+
+        Args:
+            summary: The notification title
+            body: The notification body text
+            urgency: The urgency level (default: critical)
+            wait_for_action: If True, block until user clicks an action button.
+                             Requires running in blocking mode. Default is False.
+
+        Returns:
+            Optional[str]: Notification ID if successful, None otherwise.
+                          If wait_for_action=True, returns action name clicked.
         """
         self.summary = summary
         self.urgency = urgency
@@ -389,17 +419,42 @@ class PersistentNotification:
             "-t",
             "0",  # 0 = persistent/infinite
             "-p",  # Print notification ID
-            summary,
-            body,
         ]
+
+        # T5b: Add action button for stopping recording
+        # The action appears in dunst's context menu (Ctrl+Shift+.)
+        # When clicked, dunstify outputs the action name to stdout
+        cmd.extend(["-A", "stop,Stop Recording"])
+
+        # T5b: Optionally wait for user action
+        # This blocks until user clicks the action button
+        if wait_for_action:
+            cmd.append("-w")
+
+        cmd.extend([summary, body])
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             # Update last operation time regardless of success/failure
             PersistentNotification._last_operation_time = time.time()
 
-            if result.returncode == 0 and result.stdout.strip():
-                self.notification_id = result.stdout.strip()
+            # T5b: Handle action callback
+            # When user clicks action button, dunstify returns the action name
+            # The output could be either notification ID or action name
+            output = result.stdout.strip()
+
+            if result.returncode == 0 and output:
+                # Check if this is an action response (e.g., "stop")
+                # or a notification ID (numeric string)
+                if output == "stop":
+                    logger.info("User clicked Stop Recording action")
+                    # Close the notification and signal stop
+                    self.close()
+                    _clear_notification_id()
+                    return "stop"
+
+                # Normal notification ID
+                self.notification_id = output
                 self._is_active = True
                 # EDGE CASE 2: Reset failure counter on success
                 self._consecutive_failures = 0
@@ -521,16 +576,61 @@ _recording_notification: Optional[PersistentNotification] = None
 
 
 def notify_recording_persistent_start() -> bool:
-    """Send a persistent notification when recording starts."""
+    """Send a persistent notification when recording starts.
+
+    T5b FEATURE: The notification includes a "Stop Recording" action button.
+    To use the action button:
+    1. The notification appears with a stop action
+    2. Press Ctrl+Shift+. in dunst to open context menu
+    3. Select "Stop Recording" to stop the recording
+
+    Note: This requires the script to be run in blocking mode (wait_for_action=True)
+    for the action callback to be handled. In the default non-blocking mode,
+    the action button is displayed but the callback cannot be received.
+    """
     global _recording_notification
     _recording_notification = PersistentNotification()
     result = _recording_notification.send(
         summary="Dictation",
-        body="Recording in progress... press again to stop",
+        body="Recording in progress... press again to stop\n"
+        "Or use context menu (Ctrl+Shift+.) to stop",
     )
     if result:
         _save_notification_id(result)
     return result is not None
+
+
+def notify_recording_persistent_start_blocking() -> Optional[str]:
+    """Send a persistent notification and wait for user to click stop action.
+
+    T5b IMPLEMENTATION: This function sends a persistent notification with
+    a stop action button and blocks until the user clicks it.
+
+    Use this for scenarios where you want the notification action to work:
+    - Notification appears with "Stop Recording" button
+    - User presses Ctrl+Shift+. to open dunst context menu
+    - User clicks "Stop Recording"
+    - Function returns "stop" to signal the recording should stop
+
+    Returns:
+        Optional[str]: "stop" if user clicked stop action, notification ID if successful, None otherwise
+    """
+    global _recording_notification
+    _recording_notification = PersistentNotification()
+    result = _recording_notification.send(
+        summary="Dictation",
+        body="Recording in progress... click Stop Recording to end",
+        wait_for_action=True,
+    )
+    # If user clicked stop action, result will be "stop"
+    if result == "stop":
+        _recording_notification = None
+        _clear_notification_id()
+        return "stop"
+
+    if result:
+        _save_notification_id(result)
+    return result
 
 
 def notify_recording_persistent_update(text: str) -> bool:

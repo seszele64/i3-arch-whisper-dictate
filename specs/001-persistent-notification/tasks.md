@@ -53,11 +53,11 @@
 - [x] Status: complete
 
 ### T5b: Add notification action button for stopping recording (FR-005)
-- [ ] Add stop action to notification using -A "stop,Stop Recording" flag
-- [ ] Handle action callback to stop recording
-- [ ] Document that action requires dunst context menu (Ctrl+Shift+.)
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] Add stop action to notification using -A "stop,Stop Recording" flag
+- [x] Handle action callback to stop recording
+- [x] Document that action requires dunst context menu (Ctrl+Shift+.)
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ---
 
