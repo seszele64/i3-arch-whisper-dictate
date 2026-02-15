@@ -17,40 +17,40 @@
 ## Phase 1: Setup
 
 ### T1: Verify dunstify availability check
-- [ ] Check if shutil.which works for dunstify detection
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] Check if shutil.which works for dunstify detection
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ### T2: Add dunstify fallback to notify-send
-- [ ] Implement is_dunstify_available() helper
-- [ ] Implement send_dunstify() with fallback
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] Implement is_dunstify_available() helper
+- [x] Implement send_dunstify() with fallback
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ---
 
 ## Phase 2: Core Notification System
 
 ### T3: Create PersistentNotification class
-- [ ] Implement constructor with notification_id tracking
-- [ ] Implement send_persistent() method
-- [ ] Implement update() method using stack tags
-- [ ] Implement close() method
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] Implement constructor with notification_id tracking
+- [x] Implement send_persistent() method
+- [x] Implement update() method using stack tags
+- [x] Implement close() method
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ### T4: Add helper functions for recording notifications
-- [ ] notify_recording_persistent_start()
-- [ ] notify_recording_persistent_update()
-- [ ] notify_recording_persistent_stop()
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] notify_recording_persistent_start()
+- [x] notify_recording_persistent_update()
+- [x] notify_recording_persistent_stop()
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ### T5: Add error handling and logging
-- [ ] Log warnings when dunstify unavailable
-- [ ] Log notification failures
-- [ ] File: whisper_dictate/notifications.py
-- [ ] Status: pending
+- [x] Log warnings when dunstify unavailable
+- [x] Log notification failures
+- [x] File: whisper_dictate/notifications.py
+- [x] Status: complete
 
 ### T5b: Add notification action button for stopping recording (FR-005)
 - [ ] Add stop action to notification using -A "stop,Stop Recording" flag
@@ -85,12 +85,12 @@
 ## Phase 4: Testing
 
 ### T9: Add unit tests for PersistentNotification
-- [ ] Test send_persistent()
-- [ ] Test update()
-- [ ] Test close()
-- [ ] Test fallback behavior
-- [ ] File: tests/test_notifications.py
-- [ ] Status: pending
+- [x] Test send_persistent()
+- [x] Test update()
+- [x] Test close()
+- [x] Test fallback behavior
+- [x] File: tests/test_notifications.py
+- [x] Status: complete
 
 ### T10: Run existing tests
 - [ ] pytest tests/

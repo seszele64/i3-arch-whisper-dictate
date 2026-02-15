@@ -18,45 +18,124 @@ BOUNDARIES:
 prevents the cognitive load of remembering notify-send syntax and parameters.
 """
 
+import logging
+import shutil
 import subprocess
 from typing import Literal, Optional
+
+# Set up module-level logger
+logger = logging.getLogger(__name__)
 
 # Type aliases for notification parameters
 UrgencyLevel = Literal["low", "normal", "critical"]
 TimeoutMs = int  # Timeout in milliseconds
 
 
-def send_notification(
+def is_dunstify_available() -> bool:
+    """
+    Check if dunstify binary is available on the system.
+
+    RESPONSIBILITY: Determine whether dunstify can be used for notifications.
+
+    Returns:
+        bool: True if dunstify binary exists, False otherwise
+    """
+    return shutil.which("dunstify") is not None
+
+
+def send_dunstify(
     summary: str,
     body: str = "",
     urgency: UrgencyLevel = "normal",
-    timeout: TimeoutMs = 5000
-) -> bool:
+    timeout: TimeoutMs = 0,
+) -> Optional[str]:
     """
-    WHY THIS EXISTS: Provides a consistent way to send desktop notifications
-    across the application with proper error handling and type safety.
-    
-    RESPONSIBILITY: Send a desktop notification using notify-send command.
-    
+    Send a notification using dunstify with fallback to notify-send.
+
+    RESPONSIBILITY: Send a desktop notification, preferring dunstify for
+    persistent notifications (timeout=0) but falling back to notify-send.
+
     DOES:
-    - Send notifications with configurable urgency and timeout
-    - Handle command execution errors gracefully
-    - Provide boolean success/failure feedback
-    
+    - Use dunstify when available for better persistent notification support
+    - Fall back to notify-send if dunstify is not installed
+    - Return notification ID from dunstify if available
+
     DOES NOT:
-    - Queue notifications if system is busy
+    - Queue notifications
     - Handle notification server unavailability
-    - Provide notification history or callbacks
-    
+
     Args:
         summary: The notification title/summary text
         body: Optional detailed message body
         urgency: Notification urgency level ("low", "normal", or "critical")
         timeout: Display duration in milliseconds (0 for persistent)
-        
+
+    Returns:
+        Optional[str]: Notification ID if dunstify was used and returned one,
+                       None otherwise or on error
+    """
+    try:
+        dunstify_available = is_dunstify_available()
+        if dunstify_available:
+            cmd = ["dunstify", "-u", urgency, "-t", str(timeout), summary, body]
+        else:
+            logger.warning("dunstify not available, falling back to notify-send")
+            cmd = ["notify-send", "-u", urgency, "-t", str(timeout), summary, body]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+        if result.returncode != 0:
+            logger.error(
+                "Notification failed: %s",
+                result.stderr.strip() if result.stderr else "unknown error",
+            )
+            return None
+
+        # dunstify returns the notification ID in stdout
+        if dunstify_available and result.stdout.strip():
+            return result.stdout.strip()
+
+        return None
+
+    except FileNotFoundError as e:
+        logger.error("Notification command not found: %s", e)
+        return None
+    except Exception as e:
+        logger.error("Failed to send notification: %s", e)
+        return None
+
+
+def send_notification(
+    summary: str,
+    body: str = "",
+    urgency: UrgencyLevel = "normal",
+    timeout: TimeoutMs = 5000,
+) -> bool:
+    """
+    WHY THIS EXISTS: Provides a consistent way to send desktop notifications
+    across the application with proper error handling and type safety.
+
+    RESPONSIBILITY: Send a desktop notification using notify-send command.
+
+    DOES:
+    - Send notifications with configurable urgency and timeout
+    - Handle command execution errors gracefully
+    - Provide boolean success/failure feedback
+
+    DOES NOT:
+    - Queue notifications if system is busy
+    - Handle notification server unavailability
+    - Provide notification history or callbacks
+
+    Args:
+        summary: The notification title/summary text
+        body: Optional detailed message body
+        urgency: Notification urgency level ("low", "normal", or "critical")
+        timeout: Display duration in milliseconds (0 for persistent)
+
     Returns:
         bool: True if notification was sent successfully, False otherwise
-        
+
     Examples:
         >>> send_notification("Recording Started", "Press again to stop")
         True
@@ -69,18 +148,18 @@ def send_notification(
             f"--urgency={urgency}",
             f"--expire-time={timeout}",
             summary,
-            body
+            body,
         ]
-        
+
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            check=False  # Don't raise exception on non-zero exit
+            check=False,  # Don't raise exception on non-zero exit
         )
-        
+
         return result.returncode == 0
-        
+
     except FileNotFoundError:
         # notify-send command not found
         return False
@@ -92,9 +171,9 @@ def send_notification(
 def notify_recording_started() -> bool:
     """
     WHY THIS EXISTS: Standardized notification for when recording begins.
-    
+
     RESPONSIBILITY: Send a consistent "recording started" notification.
-    
+
     Returns:
         bool: True if notification sent successfully
     """
@@ -102,20 +181,20 @@ def notify_recording_started() -> bool:
         summary="Dictation",
         body="Recording started... press again to stop",
         urgency="normal",
-        timeout=3000
+        timeout=3000,
     )
 
 
 def notify_recording_stopped(text_preview: str = "") -> bool:
     """
     WHY THIS EXISTS: Standardized notification for when recording stops.
-    
+
     RESPONSIBILITY: Send a consistent "recording stopped" notification with
     optional transcription preview.
-    
+
     Args:
         text_preview: First part of transcribed text to show
-        
+
     Returns:
         bool: True if notification sent successfully
     """
@@ -126,52 +205,43 @@ def notify_recording_stopped(text_preview: str = "") -> bool:
         else:
             preview = text_preview
         body = f"Transcription: {preview}"
-    
+
     return send_notification(
-        summary="Dictation",
-        body=body,
-        urgency="normal",
-        timeout=5000
+        summary="Dictation", body=body, urgency="normal", timeout=5000
     )
 
 
 def notify_error(error_message: str) -> bool:
     """
     WHY THIS EXISTS: Standardized error notifications for consistent user feedback.
-    
+
     RESPONSIBILITY: Send a consistent error notification with the provided message.
-    
+
     Args:
         error_message: The error description to display
-        
+
     Returns:
         bool: True if notification sent successfully
     """
     return send_notification(
-        summary="Dictation Error",
-        body=error_message,
-        urgency="critical",
-        timeout=10000
+        summary="Dictation Error", body=error_message, urgency="critical", timeout=10000
     )
 
 
 def notify_info(info_message: str) -> bool:
     """
     WHY THIS EXISTS: Standardized info notifications for non-critical feedback.
-    
+
     RESPONSIBILITY: Send a consistent informational notification.
-    
+
     Args:
         info_message: The information message to display
-        
+
     Returns:
         bool: True if notification sent successfully
     """
     return send_notification(
-        summary="Dictation",
-        body=info_message,
-        urgency="low",
-        timeout=3000
+        summary="Dictation", body=info_message, urgency="low", timeout=3000
     )
 
 
@@ -180,9 +250,9 @@ def notify_stopping_transcription() -> bool:
     WHY THIS EXISTS: Provides immediate user feedback when recording is stopped
     and transcription is about to begin, preventing confusion about whether
     the key press was registered.
-    
+
     RESPONSIBILITY: Send a consistent "stopping recording" notification.
-    
+
     Returns:
         bool: True if notification sent successfully
     """
@@ -190,5 +260,143 @@ def notify_stopping_transcription() -> bool:
         summary="Dictation",
         body="Stopping recording... processing audio",
         urgency="normal",
-        timeout=2000
+        timeout=2000,
     )
+
+
+class PersistentNotification:
+    """
+    Manages a persistent notification that stays visible during recording.
+
+    Uses dunstify with stack tags to allow updates and closing.
+    """
+
+    def __init__(self, stack_tag: str = "dictation-recording"):
+        """Initialize the persistent notification manager."""
+        self.stack_tag = stack_tag
+        self.notification_id: Optional[str] = None
+        self._is_active: bool = False
+        self.summary: str = "Dictation"
+        self.urgency: UrgencyLevel = "critical"
+
+    def send(
+        self, summary: str, body: str, urgency: UrgencyLevel = "critical"
+    ) -> Optional[str]:
+        """Send a persistent notification with -t 0 for indefinite display."""
+        self.summary = summary
+        self.urgency = urgency
+
+        if not is_dunstify_available():
+            logger.warning("dunstify not available, falling back")
+            # Fall back to regular notification or return None
+            return None
+
+        if self._is_active:
+            return self.update(body)
+
+        cmd = [
+            "dunstify",
+            "-u",
+            urgency,
+            "-t",
+            "0",  # 0 = persistent/infinite
+            "-p",  # Print notification ID
+            "--tag",
+            self.stack_tag,  # Stack tag for updates
+            summary,
+            body,
+        ]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if result.returncode == 0 and result.stdout.strip():
+                self.notification_id = result.stdout.strip()
+                self._is_active = True
+                logger.info(f"Persistent notification sent: {self.notification_id}")
+                return self.notification_id
+            logger.error(f"Failed to send persistent notification: {result.stderr}")
+            return None
+        except Exception as e:
+            logger.error(f"Error sending persistent notification: {e}")
+            return None
+
+    def update(self, body: str) -> Optional[str]:
+        """Update the notification body using notification ID."""
+        if not self._is_active or not self.notification_id:
+            logger.warning("No active notification to update")
+            return None
+
+        cmd = [
+            "dunstify",
+            "-u",
+            self.urgency,
+            "-t",
+            "0",
+            "-r",
+            self.notification_id,
+            self.summary,
+            body,
+        ]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if result.returncode == 0:
+                if result.stdout.strip():
+                    self.notification_id = result.stdout.strip()
+                return self.notification_id
+            return None
+        except Exception as e:
+            logger.error(f"Error updating notification: {e}")
+            return None
+
+    def close(self) -> bool:
+        """Close the persistent notification using -C flag."""
+        if not self._is_active:
+            return True
+
+        cmd = ["dunstify", "-C", str(self.notification_id)]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, check=False)
+            self._is_active = False
+            self.notification_id = None
+            return result.returncode == 0
+        except Exception as e:
+            logger.error(f"Error closing notification: {e}")
+            self._is_active = False
+            return False
+
+
+# Module-level instance for recording notifications
+_recording_notification: Optional[PersistentNotification] = None
+
+
+def notify_recording_persistent_start() -> bool:
+    """Send a persistent notification when recording starts."""
+    global _recording_notification
+    _recording_notification = PersistentNotification()
+    result = _recording_notification.send(
+        summary="Dictation",
+        body="Recording in progress... press again to stop",
+    )
+    return result is not None
+
+
+def notify_recording_persistent_update(text: str) -> bool:
+    """Update the persistent notification with transcription text."""
+    global _recording_notification
+    if _recording_notification and _recording_notification._is_active:
+        preview = text[:100] + "..." if len(text) > 100 else text
+        result = _recording_notification.update(f"Recording... {preview}")
+        return result is not None
+    return False
+
+
+def notify_recording_persistent_stop() -> bool:
+    """Close the persistent notification when recording stops."""
+    global _recording_notification
+    if _recording_notification and _recording_notification._is_active:
+        result = _recording_notification.close()
+        _recording_notification = None
+        return result
+    return True
