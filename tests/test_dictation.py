@@ -2,10 +2,9 @@
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 from whisper_dictate.dictation import DictationService
-from whisper_dictate.transcription import TranscriptionResult
 
 
 class TestDictationService:

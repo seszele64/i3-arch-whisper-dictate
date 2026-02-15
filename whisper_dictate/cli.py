@@ -22,7 +22,6 @@ def setup_logging(level: str) -> None:
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR)
     """
-    import os
     from pathlib import Path
     
     # Create log directory

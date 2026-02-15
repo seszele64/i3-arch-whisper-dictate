@@ -1,7 +1,6 @@
 """Tests for clipboard functionality."""
 
-import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 
 from whisper_dictate.clipboard import ClipboardManager
 

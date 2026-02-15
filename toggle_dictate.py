@@ -6,7 +6,6 @@ Fixed toggle dictation for i3 - proper real-time recording with immediate start/
 import os
 import sys
 import time
-import tempfile
 import logging
 import signal
 import subprocess
@@ -42,7 +41,6 @@ def setup_logging():
     - DOES: Set up logging configuration with file output
     - DOES NOT: Handle log rotation or file management
     """
-    import os
     from pathlib import Path
 
     # Create log directory
