@@ -98,9 +98,9 @@
 - [x] Status: complete
 
 ### T11: Manual testing
-- [ ] Test with actual recording
-- [ ] Verify notification persistence
-- [ ] Status: pending
+- [x] Test with actual recording
+- [x] Verify notification persistence
+- [x] Status: complete
 
 ---
 
