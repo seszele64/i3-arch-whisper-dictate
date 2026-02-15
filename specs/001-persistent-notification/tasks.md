@@ -64,16 +64,16 @@
 ## Phase 3: Integration
 
 ### T6: Integrate with toggle_dictate.py
-- [ ] Import new notification functions
-- [ ] Replace notify_recording_started with persistent version
-- [ ] Add close on stop
-- [ ] File: toggle_dictate.py
-- [ ] Status: pending
+- [x] Import new notification functions
+- [x] Replace notify_recording_started with persistent version
+- [x] Add close on stop
+- [x] File: toggle_dictate.py
+- [x] Status: complete
 
 ### T7: Test notification lifecycle
-- [ ] Start recording -> notification appears
-- [ ] Stop recording -> notification closes
-- [ ] Status: pending
+- [x] Start recording -> notification appears
+- [x] Stop recording -> notification closes
+- [x] Status: complete
 
 ### T8: Handle edge cases
 - [ ] Multiple rapid start/stop

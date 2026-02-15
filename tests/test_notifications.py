@@ -743,3 +743,200 @@ class TestPersistentNotificationHelpers:
         result = notify_recording_persistent_stop()
 
         assert result is True
+
+
+class TestNotificationLifecycleIntegration:
+    """
+    Integration test for the full notification lifecycle.
+
+    This test verifies the complete flow:
+    - Start recording -> notification appears
+    - Update recording -> notification updates
+    - Stop recording -> notification closes
+    """
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_full_notification_lifecycle(self, mock_run, mock_dunstify_available):
+        """
+        Test the complete notification lifecycle.
+
+        Verifies:
+        1. notify_recording_persistent_start() sends a notification
+        2. notify_recording_persistent_update() updates it
+        3. notify_recording_persistent_stop() closes it
+        """
+        import whisper_dictate.notifications as notifications
+
+        # Setup: dunstify is available
+        mock_dunstify_available.return_value = True
+
+        # Reset global state
+        notifications._recording_notification = None
+
+        # Phase 1: Start recording - notification should appear
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+
+        result_start = notify_recording_persistent_start()
+
+        assert result_start is True, "Start notification should succeed"
+        assert notifications._recording_notification is not None, (
+            "Global notification should be set"
+        )
+        assert notifications._recording_notification._is_active is True, (
+            "Notification should be active"
+        )
+        assert notifications._recording_notification.notification_id == "12345", (
+            "Notification ID should be captured"
+        )
+
+        # Verify the start call
+        mock_run.assert_called_once_with(
+            [
+                "dunstify",
+                "-u",
+                "critical",
+                "-t",
+                "0",
+                "-p",
+                "--tag",
+                "dictation-recording",
+                "Dictation",
+                "Recording in progress... press again to stop",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        # Phase 2: Update recording - notification should update
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+
+        result_update = notify_recording_persistent_update("Test transcription text")
+
+        assert result_update is True, "Update notification should succeed"
+        assert notifications._recording_notification._is_active is True, (
+            "Notification should still be active"
+        )
+
+        # Verify the update call
+        mock_run.assert_called_once_with(
+            [
+                "dunstify",
+                "-u",
+                "critical",
+                "-t",
+                "0",
+                "-r",
+                "12345",
+                "Dictation",
+                "Recording... Test transcription text",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        # Phase 3: Stop recording - notification should close
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0)
+
+        result_stop = notify_recording_persistent_stop()
+
+        assert result_stop is True, "Stop notification should succeed"
+        assert notifications._recording_notification is None, (
+            "Global notification should be cleared"
+        )
+
+        # Verify the close call
+        mock_run.assert_called_once_with(
+            [
+                "dunstify",
+                "-C",
+                "12345",
+            ],
+            capture_output=True,
+            check=False,
+        )
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    @patch("subprocess.run")
+    def test_lifecycle_with_multiple_updates(self, mock_run, mock_dunstify_available):
+        """
+        Test lifecycle with multiple updates between start and stop.
+        """
+        import whisper_dictate.notifications as notifications
+
+        mock_dunstify_available.return_value = True
+        notifications._recording_notification = None
+
+        # Start
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+        notify_recording_persistent_start()
+
+        # First update
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+        result1 = notify_recording_persistent_update("First update")
+        assert result1 is True
+
+        # Second update
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+        result2 = notify_recording_persistent_update("Second update")
+        assert result2 is True
+
+        # Third update with long text (should be truncated)
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0, stdout="12345\n", stderr="")
+        long_text = "a" * 150
+        result3 = notify_recording_persistent_update(long_text)
+        assert result3 is True
+
+        # Verify truncation
+        expected_preview = "a" * 100 + "..."
+        mock_run.assert_called_once_with(
+            [
+                "dunstify",
+                "-u",
+                "critical",
+                "-t",
+                "0",
+                "-r",
+                "12345",
+                "Dictation",
+                f"Recording... {expected_preview}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        # Stop
+        mock_run.reset_mock()
+        mock_run.return_value = Mock(returncode=0)
+        result_stop = notify_recording_persistent_stop()
+        assert result_stop is True
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
+    def test_lifecycle_dunstify_not_available(self, mock_dunstify_available):
+        """
+        Test that lifecycle handles dunstify not being available gracefully.
+        """
+        import whisper_dictate.notifications as notifications
+
+        mock_dunstify_available.return_value = False
+        notifications._recording_notification = None
+
+        # Start should fail gracefully
+        result_start = notify_recording_persistent_start()
+        assert result_start is False
+
+        # Update should fail gracefully
+        result_update = notify_recording_persistent_update("Test")
+        assert result_update is False
+
+        # Stop should succeed (nothing to close)
+        result_stop = notify_recording_persistent_stop()
+        assert result_stop is True
