@@ -357,8 +357,6 @@ class PersistentNotification:
             "-t",
             "0",  # 0 = persistent/infinite
             "-p",  # Print notification ID
-            "--tag",
-            self.stack_tag,  # Stack tag for updates
             summary,
             body,
         ]
