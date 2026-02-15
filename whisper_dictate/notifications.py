@@ -22,10 +22,42 @@ import logging
 import shutil
 import subprocess
 import time
+from pathlib import Path
 from typing import Literal, Optional
+
+# File to persist notification ID between script invocations
+NOTIFICATION_ID_FILE = Path.home() / ".whisper-dictate-notification-id"
 
 # Set up module-level logger
 logger = logging.getLogger(__name__)
+
+
+def _save_notification_id(notification_id: str) -> None:
+    """Save notification ID to file for persistence across script invocations."""
+    try:
+        NOTIFICATION_ID_FILE.write_text(notification_id)
+    except Exception as e:
+        logger.warning(f"Failed to save notification ID: {e}")
+
+
+def _load_notification_id() -> Optional[str]:
+    """Load notification ID from file."""
+    try:
+        if NOTIFICATION_ID_FILE.exists():
+            return NOTIFICATION_ID_FILE.read_text().strip()
+    except Exception as e:
+        logger.warning(f"Failed to load notification ID: {e}")
+    return None
+
+
+def _clear_notification_id() -> None:
+    """Clear saved notification ID."""
+    try:
+        if NOTIFICATION_ID_FILE.exists():
+            NOTIFICATION_ID_FILE.unlink()
+    except Exception as e:
+        logger.warning(f"Failed to clear notification ID: {e}")
+
 
 # Type aliases for notification parameters
 UrgencyLevel = Literal["low", "normal", "critical"]
@@ -464,7 +496,12 @@ class PersistentNotification:
     def close(self) -> bool:
         """Close the persistent notification using -C flag."""
         if not self._is_active:
+            logger.info("Close: notification not active, skipping")
             return True
+
+        logger.info(
+            f"Closing notification {self.notification_id} with command: dunstify -C {self.notification_id}"
+        )
 
         cmd = ["dunstify", "-C", str(self.notification_id)]
 
@@ -491,6 +528,8 @@ def notify_recording_persistent_start() -> bool:
         summary="Dictation",
         body="Recording in progress... press again to stop",
     )
+    if result:
+        _save_notification_id(result)
     return result is not None
 
 
@@ -507,8 +546,27 @@ def notify_recording_persistent_update(text: str) -> bool:
 def notify_recording_persistent_stop() -> bool:
     """Close the persistent notification when recording stops."""
     global _recording_notification
+    logger.info(
+        f"notify_recording_persistent_stop called: _recording_notification={_recording_notification}"
+    )
+
+    # If no active notification object but we have a saved ID, try to close it
+    if not _recording_notification or not _recording_notification._is_active:
+        saved_id = _load_notification_id()
+        if saved_id:
+            logger.info(f"Found saved notification ID: {saved_id}, attempting to close")
+            # Create a temporary notification object to close it
+            temp_notification = PersistentNotification()
+            temp_notification.notification_id = saved_id
+            temp_notification._is_active = True
+            result = temp_notification.close()
+            _clear_notification_id()
+            return result
+
     if _recording_notification and _recording_notification._is_active:
         result = _recording_notification.close()
         _recording_notification = None
+        _clear_notification_id()
         return result
+    logger.info("  Skipping close - no active notification")
     return True
