@@ -334,7 +334,14 @@ class PersistentNotification:
         self.summary = summary
         self.urgency = urgency
 
-        # EDGE CASE 1: Rate limiting - check if enough time has passed since last operation
+        if self._is_active:
+            return self.update(body)
+
+        if not is_dunstify_available():
+            logger.warning("dunstify not available, falling back")
+            return None
+
+        # EDGE CASE: Rate limiting - check if enough time has passed since last operation
         current_time = time.time()
         elapsed = current_time - PersistentNotification._last_operation_time
         if elapsed < PersistentNotification._min_operation_interval:
@@ -342,14 +349,6 @@ class PersistentNotification:
                 f"Rate limiting: skipping send, only {elapsed:.3f}s since last operation"
             )
             return None
-
-        if not is_dunstify_available():
-            logger.warning("dunstify not available, falling back")
-            # Fall back to regular notification or return None
-            return None
-
-        if self._is_active:
-            return self.update(body)
 
         cmd = [
             "dunstify",
@@ -396,10 +395,7 @@ class PersistentNotification:
     def update(self, body: str) -> Optional[str]:
         """Update the notification body using notification ID.
 
-        EDGE CASE 1: Multiple Rapid Start/Stop
-        - Implements rate limiting using _last_operation_time
-
-        EDGE CASE 2: Notification Daemon Crash During Recording
+        EDGE CASE: Notification Daemon Crash During Recording
         - Checks daemon health before attempting update
         - If daemon appears crashed (update fails), marks notification as inactive
         - Tracks failures similarly to send()
@@ -408,16 +404,7 @@ class PersistentNotification:
             logger.warning("No active notification to update")
             return None
 
-        # EDGE CASE 1: Rate limiting
-        current_time = time.time()
-        elapsed = current_time - PersistentNotification._last_operation_time
-        if elapsed < PersistentNotification._min_operation_interval:
-            logger.debug(
-                f"Rate limiting: skipping update, only {elapsed:.3f}s since last operation"
-            )
-            return None
-
-        # EDGE CASE 2: Check daemon health before attempting update
+        # EDGE CASE: Check daemon health before attempting update
         if not is_dunst_running():
             logger.warning(
                 "Notification daemon not running, marking notification as inactive"

@@ -93,9 +93,9 @@
 - [x] Status: complete
 
 ### T10: Run existing tests
-- [ ] pytest tests/
-- [ ] Verify no regressions
-- [ ] Status: pending
+- [x] pytest tests/
+- [x] Verify no regressions
+- [x] Status: complete
 
 ### T11: Manual testing
 - [ ] Test with actual recording
