@@ -15,7 +15,7 @@ A Python script for voice dictation using OpenAI Whisper API with global key bin
 ### 1. Install Dependencies
 ```bash
 # Install system dependencies
-sudo pacman -S python python-pip ffmpeg portaudio xclip xsel wl-clipboard dunst
+sudo pacman -S python python-pip ffmpeg portaudio xclip xsel wl-clipboard dunst dmenu
 
 # Install Python dependencies
 pip install --user -r requirements.txt
@@ -107,6 +107,52 @@ The script uses sensible defaults:
 - Sample rate: 16kHz (optimal for Whisper)
 - Channels: 1 (mono)
 - Format: 16-bit WAV
+
+## Notification Action Buttons
+
+When recording, the notification displays a "Stop Recording" action button. There are two ways to use it:
+
+### Prerequisites
+
+1. **Install dunst and dmenu** (required for action buttons):
+   ```bash
+   # Arch Linux
+   sudo pacman -S dunst dmenu
+
+   # Debian/Ubuntu
+   sudo apt-get install dunst dmenu
+   ```
+
+2. **Start dunst notification daemon** if not already running:
+   ```bash
+   dunst &
+   ```
+
+### i3 Configuration for Context Menu
+
+To use the notification action button, you need to configure a keybinding for dunst's context menu in your i3 config (`~/.config/i3/config`):
+
+```bash
+# Dunst context menu keybinding (required for notification actions)
+bindsym Ctrl+Shift+. exec dunstctl context
+```
+
+Reload i3 after adding:
+```bash
+i3-msg reload
+```
+
+### How to Use Action Buttons
+
+**Method 1: Click the notification (if supported)**
+- Some dunst configurations support clicking action buttons directly on the notification
+
+**Method 2: Use the context menu**
+1. While recording, press `Ctrl+Shift+.` to open dunst's context menu
+2. Select "Stop Recording" from the menu
+3. The recording will stop and transcription will begin
+
+**Note:** The context menu keybinding (`Ctrl+Shift+.`) is configurable in your dunst configuration. Check your dunstrc for the `shortcut` setting under `[global]` or `[keybind]` sections.
 
 ## Troubleshooting
 

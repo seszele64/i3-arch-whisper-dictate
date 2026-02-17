@@ -23,14 +23,20 @@ Persistent notifications can include action buttons that users can click to
 trigger actions. This is implemented using dunstify's -A flag.
 
 How to use the Stop Recording action:
-1. A notification appears with a "Stop Recording" action
-2. Press Ctrl+Shift+. to open dunst's context menu (shortcut configurable in dunst)
+1. A notification appears with a "Stop Recording" action button
+2. Press Ctrl+Shift+. to open dunst's context menu (requires i3 keybinding below)
 3. Select "Stop Recording" from the menu
 4. The action callback is triggered
 
-NOTE: The action button requires dunst context menu to be enabled (Ctrl+Shift+.)
-in your dunst configuration. The action will only work in blocking mode where
-the script waits for user input (-w flag with dunstify).
+PREREQUISITES:
+- dunst notification daemon must be running
+- dmenu must be installed (used by dunst for context menu)
+- i3 keybinding: Add "bindsym Ctrl+Shift+. exec dunstctl context" to ~/.config/i3/config
+- Reload i3 with: i3-msg reload
+
+NOTE: The action button requires the dunst context menu to be enabled via
+the dunstctl context command. The default keybinding is Ctrl+Shift+. but
+can be customized in your dunst configuration.
 """
 
 import logging
