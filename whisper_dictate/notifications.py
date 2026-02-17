@@ -348,13 +348,11 @@ class PersistentNotification:
     Uses dunstify with stack tags to allow updates and closing.
 
     EDGE CASE HANDLING:
-    - Multiple rapid start/stop: Uses _operation_lock to prevent race conditions
+    - Multiple rapid start/stop: Uses rate limiting to prevent race conditions
     - Daemon crash: Tracks consecutive failures and attempts recovery
     - Stale notification IDs: Validates daemon state before operations
     """
 
-    # Class-level lock to prevent race conditions during rapid toggles
-    _operation_lock: Optional[subprocess.Popen] = None
     _last_operation_time: float = 0.0
     _min_operation_interval: float = 0.1  # Minimum 100ms between operations
 

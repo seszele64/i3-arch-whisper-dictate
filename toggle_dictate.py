@@ -199,7 +199,8 @@ def main():
         if is_recording():
             logging.info("Stopping recording...")
             notify_stopping_transcription()
-            notify_recording_persistent_stop()
+            if not notify_recording_persistent_stop():
+                logging.warning("Failed to stop persistent notification")
             if stop_background_recording():
                 transcribe_audio(config)
             else:
