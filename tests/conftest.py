@@ -90,7 +90,7 @@ def mock_subprocess() -> Generator[Mock, None, None]:
 
 
 @pytest.fixture
-def mock_sounddevice() -> Generator[Mock, None, None]:
+def mock_sounddevice() -> Generator[dict[str, Mock], None, None]:
     """Mock sounddevice for testing audio recording."""
     with (
         patch("sounddevice.rec") as mock_rec,
