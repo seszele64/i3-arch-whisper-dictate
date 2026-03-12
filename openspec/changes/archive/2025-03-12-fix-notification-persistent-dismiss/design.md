@@ -1,48 +1,89 @@
 ## Context
 
-The `PersistentNotification` class in `whisper_dictate/notifications.py` provides persistent desktop notifications using dunstify. The `open()` method correctly checks if dunstify is available before attempting to send a notification (line 406), but the `close()` method (lines 555-575) lacks this check.
+The original design attempted to fix the ID-based notification closing approach by adding availability checks for dunstify. However, during implementation, a fundamental issue was discovered: **notification IDs are inherently unreliable for cross-process notification management**.
 
-This inconsistency causes the following issue:
-1. User starts recording → `open()` is called → notification sent via dunstify
-2. For some reason dunstify becomes unavailable (uninstalled, path change, etc.)
-3. User stops recording → `close()` is called → tries to run `dunstify -C` → fails because dunstify binary doesn't exist
+The problems with the ID-based approach include:
+1. **Race conditions**: The notification ID returned by dunstify may not match the actual internal dunst ID
+2. **Cross-process issues**: Saving IDs to files and loading them in different script invocations is fragile
+3. **Timing issues**: The notification may have been closed by other means before the stop command runs
+4. **ID mismatch**: dunstify returns its own process exit code, not the dunst notification ID
+
+The dunst maintainers recommend using **stack tags** (x-dunst-stack-tag hint) as the proper solution for this use case.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Add `is_dunstify_available()` check to the `close()` method before attempting to close
-- Maintain consistent behavior with the `open()` method
-- Log appropriate warning when dunstify is unavailable during close
-- Ensure no errors are thrown when dunstify is not available
+- Replace ID-based notification tracking with stack tag approach
+- Ensure persistent notification is properly replaced when recording stops
+- Maintain graceful fallback when dunstify is unavailable
+- Eliminate need for ID file persistence between script invocations
 
 **Non-Goals:**
-- Add new functionality or capabilities
-- Modify the notification display or behavior
-- Change the fallback behavior (notify-send) - this is already handled in `open()`
+- Support notification systems other than dunst (stack tags are dunst-specific)
+- Add new notification capabilities beyond start/stop replacement
 
 ## Decisions
 
-1. **Check dunstify availability in close() before subprocess call**
-   - Rationale: Consistent with `open()` method pattern (line 406)
-   - Alternative considered: Check availability at the start of close() and return early if not available, similar to how open() handles it
+### 1. Use dunst stack tags instead of notification IDs
+- **Decision**: Replace the ID-based approach with dunst stack tags (x-dunst-stack-tag hint)
+- **Rationale**: Stack tags are the recommended approach by dunst maintainers because:
+  - Works across script invocations without needing to save/load IDs
+  - Notifications with same stack tag automatically replace each other
+  - No race conditions or cross-process synchronization issues
+  - Simpler implementation - no file I/O for ID persistence
 
-2. **Return True (success) when dunstify is unavailable**
-   - Rationale: If dunstify isn't available, there's nothing to close. The notification likely never appeared or was already closed by other means. Returning True prevents unnecessary error handling upstream.
-   - Alternative: Return False to indicate failure - rejected because it would cause unnecessary error propagation for a non-critical operation
+### 2. notify_recording_start() sends persistent notification with stack tag
+- **Decision**: Use `-h string:x-dunst-stack-tag:whisper-dictate-recording` with `-t 0` (infinite timeout) and `-u critical`
+- **Rationale**: 
+  - Stack tag ensures this is the "active" recording notification
+  - Timeout 0 makes it persistent (stays until replaced)
+  - Critical urgency gives it red color and ensures it appears prominently
 
-3. **Log a warning when dunstify is unavailable during close**
-   - Rationale: Provides visibility into the state for debugging without being overly noisy
+### 3. notify_recording_stop() replaces persistent notification with brief message
+- **Decision**: Use same stack tag with 2-second timeout and normal urgency
+- **Rationale**:
+  - Same stack tag causes automatic replacement of the persistent notification
+  - 2-second timeout allows the user to see "Recording Stopped" before it auto-dismisses
+  - Normal urgency is appropriate for a non-urgent informational message
 
-4. **Update notify_recording_persistent_stop() to log warning when no notification ID found**
-   - Rationale: Currently returns True silently when saved ID is empty/corrupted, making failures invisible. Logging a warning provides debugging visibility.
-   - This function calls PersistentNotification.close() internally, so the dunstify check fix will apply, but the ID validation still needs explicit warning
+### 4. Added RECORDING_STACK_TAG constant
+- **Decision**: Define `RECORDING_STACK_TAG = "whisper-dictate-recording"` as module constant
+- **Rationale**: 
+  - Centralizes the stack tag value for consistency
+  - Makes it easy to modify if needed
+  - Documents the magic string in code
+
+### 5. Graceful fallback when dunstify unavailable
+- **Decision**: Log warning and return False when dunstify is not available
+- **Rationale**: Consistent with other notification functions; prevents errors from propagating
+
+## Technical Details
+
+### How Stack Tags Work
+
+Dunst supports a hint called `x-dunst-stack-tag` that groups notifications into a "stack". When a new notification with the same stack tag is sent:
+1. The new notification replaces the existing one with the same tag
+2. This happens automatically without needing to know the original notification's ID
+3. Works across different process invocations - no ID file needed
+
+### Command Examples
+
+**Start recording:**
+```bash
+dunstify -h string:x-dunst-stack-tag:whisper-dictate-recording -t 0 -u critical "Recording" "Dictation in progress..."
+```
+
+**Stop recording:**
+```bash
+dunstify -h string:x-dunst-stack-tag:whisper-dictate-recording -t 2000 -u normal "Recording Stopped" "Transcription in progress..."
+```
 
 ## Risks / Trade-offs
 
-- **Risk**: If dunstify becomes unavailable between open() and close(), the notification may remain visible on screen
-  - **Mitigation**: This is an edge case. The notification would have been created with dunstify originally, so it should be closeable with dunstify. If dunstify is removed mid-session, the user would need to manually close the notification.
+- **Risk**: Stack tags only work with dunst, not other notification daemons
+  - **Mitigation**: The implementation already checks for dunstify availability; fallback behavior exists
 
-- **Risk**: None significant - this is a simple, localized fix with clear precedent from the existing `open()` method
+- **Risk**: None significant - stack tags are a well-supported dunst feature recommended by maintainers
 
-- **Risk**: notify_recording_persistent_stop() returns True even when no notification was actually closed
-  - **Mitigation**: Added explicit warning log so the issue is visible for debugging
+- **Trade-off**: Replaced ID file approach (now deprecated but kept for backward compatibility)
+  - **Rationale**: Stack tags are more reliable and eliminate the need for file I/O
