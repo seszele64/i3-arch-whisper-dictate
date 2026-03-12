@@ -72,7 +72,14 @@ def _load_notification_id() -> Optional[str]:
     """Load notification ID from file."""
     try:
         if NOTIFICATION_ID_FILE.exists():
-            return NOTIFICATION_ID_FILE.read_text().strip().splitlines()[0]
+            content = NOTIFICATION_ID_FILE.read_text().strip()
+            lines = content.splitlines()
+            if lines:
+                return lines[0]
+            else:
+                logger.warning(
+                    f"Notification ID file exists but is empty: {NOTIFICATION_ID_FILE}"
+                )
     except Exception as e:
         logger.warning(f"Failed to load notification ID: {e}")
     return None
@@ -550,6 +557,15 @@ class PersistentNotification:
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             # Update last operation time regardless of success/failure
             PersistentNotification._last_operation_time = time.time()
+
+            # Guard against empty dunstify output
+            output_lines = result.stdout.strip().splitlines()
+            if not output_lines:
+                self._consecutive_failures += 1
+                logger.error("dunstify returned empty output")
+                return None
+
+            output = output_lines[0]
 
             # T5b: Handle action callback
             # When user clicks action button, dunstify returns the action name
