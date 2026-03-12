@@ -543,6 +543,20 @@ class TestPersistentNotification:
         assert result is True
 
     @patch("whisper_dictate.notifications.is_dunstify_available")
+    def test_close_dunstify_not_available(self, mock_dunstify_available):
+        """Test close when dunstify is not available."""
+        mock_dunstify_available.return_value = False
+
+        notification = PersistentNotification()
+        notification._is_active = True
+        notification.notification_id = "12345"
+
+        result = notification.close()
+
+        assert result is True  # Returns True (nothing to close)
+        assert notification._is_active is True  # Still active (couldn't close)
+
+    @patch("whisper_dictate.notifications.is_dunstify_available")
     @patch("subprocess.run")
     def test_close_failure(self, mock_run, mock_dunstify_available):
         """Test close with subprocess failure."""
@@ -844,7 +858,9 @@ class TestPersistentNotificationHelpers:
         """Test stopping when notification is not active."""
         result = notify_recording_persistent_stop()
 
-        assert result is True
+        assert (
+            result is False
+        )  # Changed: now returns False when no notification to close
 
 
 class TestNotificationLifecycleIntegration:
@@ -1039,6 +1055,8 @@ class TestNotificationLifecycleIntegration:
         result_update = notify_recording_persistent_update("Test")
         assert result_update is False
 
-        # Stop should succeed (nothing to close)
+        # Stop should fail gracefully when no notification to close
         result_stop = notify_recording_persistent_stop()
-        assert result_stop is True
+        assert (
+            result_stop is False
+        )  # Changed: now returns False when no notification exists

@@ -558,6 +558,10 @@ class PersistentNotification:
             logger.info("Close: notification not active, skipping")
             return True
 
+        if not is_dunstify_available():
+            logger.warning("dunstify not available - cannot close notification")
+            return True
+
         logger.info(
             f"Closing notification {self.notification_id} with command: dunstify -C {self.notification_id}"
         )
@@ -672,5 +676,7 @@ def notify_recording_persistent_stop() -> bool:
         _recording_notification = None
         _clear_notification_id()
         return result
-    logger.info("  Skipping close - no active notification")
-    return True
+    logger.warning(
+        "No notification ID found - cannot close notification (may have already been dismissed)"
+    )
+    return False
