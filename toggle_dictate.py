@@ -18,8 +18,8 @@ from whisper_dictate.config import load_config
 from whisper_dictate.transcription import WhisperTranscriber
 from whisper_dictate.clipboard import ClipboardManager
 from whisper_dictate.notifications import (
-    notify_recording_persistent_start,
-    notify_recording_persistent_stop,
+    notify_recording_start,
+    notify_recording_stop,
     notify_recording_stopped,
     notify_error,
     notify_stopping_transcription,
@@ -114,7 +114,7 @@ def start_background_recording(config):
         STATE_FILE.touch()
 
         logging.info("Recording started")
-        notify_recording_persistent_start()
+        notify_recording_start()
 
         return process
 
@@ -199,8 +199,8 @@ def main():
         if is_recording():
             logging.info("Stopping recording...")
             notify_stopping_transcription()
-            if not notify_recording_persistent_stop():
-                logging.warning("Failed to stop persistent notification")
+            if not notify_recording_stop():
+                logging.warning("Failed to replace persistent notification")
             if stop_background_recording():
                 transcribe_audio(config)
             else:
