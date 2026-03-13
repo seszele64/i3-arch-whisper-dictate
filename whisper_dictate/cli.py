@@ -686,5 +686,91 @@ cli.add_command(logs)
 cli.add_command(history)
 
 
+# ============ Migration Command ============
+
+
+@cli.command()
+@click.option(
+    "--force", is_flag=True, help="Force re-migration even if already completed"
+)
+@click.option("--status", is_flag=True, help="Check migration status only")
+def migrate(force: bool, status: bool) -> None:
+    """Migrate legacy state files to database.
+
+    This command migrates legacy state files to the database:
+    - ~/.whisper-dictate-state (recording state marker)
+    - ~/.whisper-dictate-pid (recording process PID)
+
+    Original files are backed up before migration.
+
+    Examples:
+        whisper-dictate migrate
+        whisper-dictate migrate --force
+        whisper-dictate migrate --status
+    """
+    import asyncio
+
+    from whisper_dictate.migration import (
+        MigrationError,
+        check_migration_status,
+        run_migration,
+    )
+
+    try:
+        if status:
+            # Just check and display status
+            result = asyncio.run(check_migration_status())
+
+            click.echo("Migration Status:")
+            click.echo("=" * 40)
+
+            legacy = result["legacy_files"]
+            click.echo(
+                f"Legacy state file:  {'Found' if legacy['state_file'] else 'Not found'}"
+            )
+            click.echo(
+                f"Legacy PID file:   {'Found' if legacy['pid_file'] else 'Not found'}"
+            )
+            click.echo(
+                f"Legacy audio file: {'Found' if legacy['audio_file'] else 'Not found'}"
+            )
+
+            click.echo(f"\nMigration completed: {result['migration_completed']}")
+            click.echo(f"Migration needed:   {result['migration_needed']}")
+
+            if result["migration_needed"]:
+                click.echo("\nRun 'whisper-dictate migrate' to perform migration.")
+            return
+
+        # Run migration
+        click.echo("Starting migration...")
+
+        result = asyncio.run(run_migration(force=force))
+
+        if result.get("skipped"):
+            click.echo(f"⚠️  {result['message']}")
+            return
+
+        if result["success"]:
+            click.echo("✅ Migration completed successfully")
+            click.echo("\nMigrated files:")
+            for name, exists in result["migrated_files"].items():
+                if exists:
+                    click.echo(f"  • {name}")
+
+            if result.get("backup_path"):
+                click.echo(f"\nBackup saved to: {result['backup_path']}")
+        else:
+            click.echo("❌ Migration failed", err=True)
+            sys.exit(1)
+
+    except MigrationError as e:
+        click.echo(f"❌ Migration error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"❌ Unexpected error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()

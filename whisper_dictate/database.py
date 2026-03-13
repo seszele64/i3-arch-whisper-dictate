@@ -97,6 +97,36 @@ class Database:
         async with self._lock:
             yield self._connection
 
+    @asynccontextmanager
+    async def transaction(self) -> AsyncIterator[aiosqlite.Connection]:
+        """Get a database connection with transaction support.
+
+        All operations within this context are atomic - if any operation fails,
+        all changes are rolled back.
+
+        Yields:
+            aiosqlite.Connection: Database connection with transaction
+
+        Example:
+            async with db.transaction():
+                await db.set_state("key1", "value1")
+                await db.set_state("key2", "value2")
+        """
+        if not self._connection:
+            raise RuntimeError("Database not initialized. Call initialize() first.")
+
+        async with self._lock:
+            # Begin explicit transaction
+            await self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                yield self._connection
+                # Commit on success
+                await self._connection.execute("COMMIT")
+            except Exception:
+                # Rollback on failure
+                await self._connection.execute("ROLLBACK")
+                raise
+
     async def execute(self, query: str, parameters: tuple = ()) -> aiosqlite.Cursor:
         """Execute a query and return the cursor.
 

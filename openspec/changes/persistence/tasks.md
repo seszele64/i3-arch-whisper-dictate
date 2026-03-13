@@ -39,12 +39,12 @@
 
 ## 6. State Migration
 
-- [ ] 6.1 Create migration detection for existing state files
-- [ ] 6.2 Implement config migration from JSON to database
-- [ ] 6.3 Add state migration (notification IDs, etc.)
-- [ ] 6.4 Implement backup of original files before migration
-- [ ] 6.5 Add migration status tracking to prevent re-running
-- [ ] 6.6 Implement rollback on migration failure
+- [x] 6.1 Create migration detection for existing state files
+- [x] 6.2 Implement config migration from JSON to database
+- [x] 6.3 Add state migration (notification IDs, etc.)
+- [x] 6.4 Implement backup of original files before migration
+- [x] 6.5 Add migration status tracking to prevent re-running
+- [x] 6.6 Implement rollback on migration failure
 
 ## 7. Integration and Testing
 
