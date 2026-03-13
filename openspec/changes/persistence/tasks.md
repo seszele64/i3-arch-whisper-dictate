@@ -53,3 +53,13 @@
 - [x] 7.3 Add new dependencies to requirements.txt
 - [x] 7.4 Run tests and fix any issues
 - [x] 7.5 Verify all CLI commands work correctly
+
+## 8. Bug Fixes
+
+- [x] 8.1 Fix transcript not being saved to database
+  - [x] 8.1.1 Identify root cause: recording_id deleted before transcription
+  - [x] 8.1.2 Modify stop_background_recording() to return recording_id before deletion
+  - [x] 8.1.3 Update transcribe_audio() to accept and use recording_id parameter
+  - [x] 8.1.4 Update main flow to pass recording_id from stop to transcribe
+  - [x] 8.1.5 Verify transcripts are now saved correctly
+  - [x] 8.1.6 Add test case for transcript saving

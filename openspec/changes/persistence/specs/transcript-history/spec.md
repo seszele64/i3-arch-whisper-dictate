@@ -1,5 +1,20 @@
 ## ADDED Requirements
 
+### Requirement: Save transcripts during dictation workflow
+The system SHALL automatically save transcripts to the database during the dictation workflow.
+
+#### Scenario: Save transcript after successful transcription
+- **GIVEN** a recording has been created in the database with a valid recording_id
+- **WHEN** the transcription completes successfully
+- **THEN** the transcript SHALL be saved to the database linked to the recording_id
+
+#### Scenario: Preserve recording ID during transcription
+- **GIVEN** a dictation session is in progress with a recording_id
+- **WHEN** the recording stops and transcription begins
+- **THEN** the recording_id SHALL remain available until after the transcript is saved
+
+---
+
 ### Requirement: View transcription history
 The system SHALL provide a command to view past transcriptions.
 

@@ -181,8 +181,22 @@ def start_background_recording(config):
 
 
 def stop_background_recording():
-    """Stop background recording and process the audio."""
+    """Stop background recording and process the audio.
+
+    Returns:
+        tuple: (success: bool, recording_id: int or None) - Returns the recording_id
+               before clearing it from state, so it can be used for transcription.
+    """
+    recording_id = None
+
     try:
+        # Get recording_id BEFORE clearing state (for transcription use)
+        try:
+            db, _ = get_db_and_storage()
+            recording_id = asyncio.run(db.get_state(STATE_KEY_RECORDING_ID))
+        except Exception as e:
+            logging.debug(f"Failed to get recording_id: {e}")
+
         pid = get_recording_pid()
         if pid:
             # Kill the recording process
@@ -209,15 +223,20 @@ def stop_background_recording():
         except Exception as e:
             logging.debug(f"Failed to clear database state: {e}")
 
-        return True
+        return True, recording_id
 
     except Exception as e:
         logging.error(f"Error stopping recording: {e}")
-        return False
+        return False, None
 
 
-def transcribe_audio(config):
-    """Transcribe the recorded audio."""
+def transcribe_audio(config, recording_id=None):
+    """Transcribe the recorded audio.
+
+    Args:
+        config: Configuration object
+        recording_id: Optional recording ID. If not provided, will attempt to get from state.
+    """
     try:
         if not AUDIO_FILE.exists():
             logging.error("No audio file found")
@@ -228,8 +247,9 @@ def transcribe_audio(config):
         # Get database and audio storage
         db, audio_storage = get_db_and_storage()
 
-        # Get recording ID from state
-        recording_id = asyncio.run(db.get_state(STATE_KEY_RECORDING_ID))
+        # Get recording ID from parameter or fall back to state lookup
+        if recording_id is None:
+            recording_id = asyncio.run(db.get_state(STATE_KEY_RECORDING_ID))
 
         # Save audio to persistent storage
         saved_path = None
@@ -308,8 +328,9 @@ def main():
             notify_stopping_transcription()
             if not notify_recording_stop():
                 logging.warning("Failed to replace persistent notification")
-            if stop_background_recording():
-                transcribe_audio(config)
+            success, recording_id = stop_background_recording()
+            if success:
+                transcribe_audio(config, recording_id)
             else:
                 logging.error("Failed to stop recording properly")
         else:
