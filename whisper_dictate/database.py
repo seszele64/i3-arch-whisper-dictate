@@ -422,6 +422,27 @@ class Database:
             )
         return None
 
+    async def get_recording_with_audio_path(
+        self, recording_id: int
+    ) -> Optional[dict[str, Any]]:
+        """Get a recording by ID with resolved absolute audio path.
+
+        Args:
+            recording_id: Recording ID
+
+        Returns:
+            Optional[dict]: Recording data with absolute_path field, or None
+        """
+        from whisper_dictate.audio_storage import get_audio_storage
+
+        recording = await self.get_recording(recording_id)
+        if recording:
+            audio_storage = get_audio_storage(self._config)
+            recording["absolute_path"] = str(
+                audio_storage.get_audio_path(recording["file_path"])
+            )
+        return recording
+
     async def list_recordings(
         self, limit: int = 50, offset: int = 0
     ) -> list[dict[str, Any]]:

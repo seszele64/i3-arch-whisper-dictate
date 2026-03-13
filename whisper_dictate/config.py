@@ -15,12 +15,16 @@ class DatabaseConfig(BaseModel):
 
     RESPONSIBILITY: Define database storage settings.
     BOUNDARIES:
-    - DOES: Provide path configuration for database
+    - DOES: Provide path configuration for database and recordings
     - DOES NOT: Handle actual database operations
     """
 
     path: Optional[Path] = Field(
         default=None, description="Database file path (defaults to XDG data directory)"
+    )
+    recordings_path: Optional[Path] = Field(
+        default=None,
+        description="Recordings directory path (defaults to XDG data directory)",
     )
 
     def get_database_path(self) -> Path:
@@ -38,6 +42,22 @@ class DatabaseConfig(BaseModel):
             / "whisper-dictate"
         )
         return data_dir / "whisper-dictate.db"
+
+    def get_recordings_path(self) -> Path:
+        """Get the full recordings directory path.
+
+        Returns:
+            Path: Full path to the recordings directory
+        """
+        if self.recordings_path:
+            return self.recordings_path
+
+        # Use XDG Base Directory spec: ~/.local/share/whisper-dictate/recordings/
+        return (
+            Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+            / "whisper-dictate"
+            / "recordings"
+        )
 
 
 class AudioConfig(BaseModel):
