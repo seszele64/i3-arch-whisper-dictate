@@ -17,8 +17,46 @@ The system SHALL create the SQLite database and all required tables on first run
 
 ---
 
-### Requirement: Database schema: logs table
+### Requirement: Database schema: recordings table
 The system SHALL use `aiosqlite` library for async SQLite operations.
+
+#### Scenario: Create recordings table with proper schema
+- **WHEN** the database is initialized
+- **THEN** the system creates a `recordings` table with the following schema:
+  - `id` INTEGER PRIMARY KEY AUTOINCREMENT
+  - `file_path` TEXT NOT NULL (path to audio file)
+  - `timestamp` TEXT NOT NULL DEFAULT (SQLite datetime format)
+  - `duration` REAL (recording duration in seconds)
+  - `format` TEXT NOT NULL DEFAULT 'wav' (audio format)
+  - `sample_rate` INTEGER (audio sample rate, e.g., 16000, 44100)
+  - `channels` INTEGER (number of audio channels)
+  - `created_at` TEXT NOT NULL DEFAULT (SQLite datetime format)
+
+---
+
+### Requirement: Database schema: transcripts table
+The system SHALL store transcripts associated with recordings.
+
+#### Scenario: Create transcripts table with proper schema
+- **WHEN** the database is initialized
+- **THEN** the system creates a `transcripts` table with the following schema:
+  - `id` INTEGER PRIMARY KEY AUTOINCREMENT
+  - `recording_id` INTEGER NOT NULL (foreign key to recordings.id)
+  - `text` TEXT NOT NULL (transcribed text)
+  - `language` TEXT (detected language code)
+  - `model_used` TEXT NOT NULL DEFAULT 'whisper-1' (Whisper model identifier)
+  - `confidence` REAL (Whisper confidence score 0.0-1.0)
+  - `timestamp` TEXT NOT NULL DEFAULT (SQLite datetime format)
+  - `created_at` TEXT NOT NULL DEFAULT (SQLite datetime format)
+
+#### Scenario: Enforce foreign key integrity
+- **WHEN** a recording is deleted
+- **THEN** the system cascades deletion to associated transcripts (ON DELETE CASCADE)
+
+---
+
+### Requirement: Database schema: logs table
+The system SHALL store application logs for debugging and auditing.
 
 #### Scenario: Create logs table with proper schema
 - **WHEN** the database is initialized
@@ -26,9 +64,25 @@ The system SHALL use `aiosqlite` library for async SQLite operations.
   - `id` INTEGER PRIMARY KEY AUTOINCREMENT
   - `level` TEXT NOT NULL (DEBUG, INFO, WARNING, ERROR)
   - `message` TEXT NOT NULL
-  - `source` TEXT NOT NULL (module name, e.g., `whisper_dictate.audio`)
-  - `timestamp` TEXT NOT NULL (ISO 8601 format)
+  - `source` TEXT (module name, e.g., `whisper_dictate.audio` - nullable for flexibility)
+  - `timestamp` TEXT NOT NULL DEFAULT (SQLite datetime format)
   - `metadata_json` TEXT (optional JSON-serialized metadata)
+
+---
+
+### Requirement: Database schema: state table
+The system SHALL provide a key-value store for persisting application state and settings.
+
+#### Scenario: Create state table with proper schema
+- **WHEN** the database is initialized
+- **THEN** the system creates a `state` table with the following schema:
+  - `key` TEXT PRIMARY KEY (state key identifier)
+  - `value_json` TEXT NOT NULL (JSON-serialized state value)
+  - `updated_at` TEXT NOT NULL DEFAULT (SQLite datetime format)
+
+#### Scenario: Upsert state values
+- **WHEN** setting a state value with a key that already exists
+- **THEN** the system updates the existing value and updates the timestamp
 
 ---
 
@@ -42,6 +96,31 @@ The system SHALL track the database schema version to enable future migrations.
 #### Scenario: Detect schema version mismatch
 - **WHEN** the application starts and the stored schema version differs from the expected version
 - **THEN** the system runs necessary migration scripts to upgrade the schema
+
+---
+
+### Requirement: Timestamp format specification
+The system SHALL use SQLite's native datetime format for all timestamp columns.
+
+#### Scenario: Timestamp format compatibility
+- **WHEN** timestamps are created using `datetime('now')`
+- **THEN** the system produces timestamps in SQLite format: `YYYY-MM-DD HH:MM:SS` (e.g., `2026-03-13 15:27:50`)
+- **NOTE**: This format is ISO 8601 compatible and acceptable for all timestamp requirements
+
+---
+
+### Requirement: Performance indexes
+The system SHALL create database indexes to optimize query performance.
+
+#### Scenario: Create indexes on initialization
+- **WHEN** the database is initialized
+- **THEN** the system creates the following indexes:
+  - `idx_recordings_timestamp` on `recordings(timestamp)` - for time-based queries
+  - `idx_transcripts_recording_id` on `transcripts(recording_id)` - for joining with recordings
+  - `idx_transcripts_timestamp` on `transcripts(timestamp)` - for time-based queries
+  - `idx_logs_level` on `logs(level)` - for filtering by log level
+  - `idx_logs_timestamp` on `logs(timestamp)` - for time-based queries
+  - `idx_logs_source` on `logs(source)` - for filtering by source module
 
 ---
 
@@ -81,7 +160,7 @@ The system SHALL store transcripts associated with recordings in the database.
 
 #### Scenario: Store transcript after transcription
 - **WHEN** a recording is transcribed successfully
-- **THEN** the system stores the transcript text, language, model used, and timestamp in the `transcripts` table linked to the recording
+- **THEN** the system stores the transcript text, language, model used, confidence, and timestamp in the `transcripts` table linked to the recording
 
 #### Scenario: Retrieve transcript by recording ID
 - **WHEN** a request is made to retrieve a transcript by recording ID
@@ -98,8 +177,35 @@ The system SHALL verify database integrity on startup.
 
 #### Scenario: Run integrity check on startup
 - **WHEN** the application starts
-- **THEN** the system runs `PRAGMA integrity_check` and logs any issues found
+- **THEN** the system verifies all required tables exist and logs the results
 
-#### Scenario: Handle corrupted database
-- **WHEN** the integrity check finds corruption
-- **THEN** the system logs an error and attempts to recover or recreate the database
+#### Scenario: Handle missing tables
+- **WHEN** the integrity check finds missing tables
+- **THEN** the system raises a RuntimeError with details of missing tables
+
+---
+
+### Requirement: State persistence operations
+The system SHALL provide CRUD operations for the state table.
+
+#### Scenario: Set state value
+- **WHEN** a state value is set
+- **THEN** the system stores the value as JSON with automatic timestamp update
+
+#### Scenario: Get state value
+- **WHEN** a state value is requested by key
+- **THEN** the system returns the deserialized JSON value or None if not found
+
+#### Scenario: Delete state value
+- **WHEN** a state value is deleted
+- **THEN** the system removes the key-value pair from the state table
+
+---
+
+### Requirement: Log retention management
+The system SHALL automatically clean up old log entries to prevent unbounded growth.
+
+#### Scenario: Cleanup old logs
+- **WHEN** cleanup is triggered (e.g., on startup or scheduled)
+- **THEN** the system deletes log entries older than the configured retention period (default: 30 days)
+- **AND** returns the count of deleted entries
