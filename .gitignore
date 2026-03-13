@@ -1,5 +1,3 @@
-.venv
-.vscode
-__pycache__/
-.env
-*.egg-info/
+.coverage
+.opencode/
+=0.*
