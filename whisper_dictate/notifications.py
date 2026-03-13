@@ -46,7 +46,14 @@ import time
 from pathlib import Path
 from typing import Literal, Optional
 
-# File to persist notification ID between script invocations
+# Stack tag for recording notifications - replaces ID-based persistence
+# Using stack tags is the recommended approach by dunst maintainers
+# as it works across process invocations and avoids ID tracking issues
+RECORDING_STACK_TAG = "whisper-dictate-recording"
+
+# File to persist notification ID between script invocations (DEPRECATED)
+# NOTE: This is kept for backward compatibility but is no longer used.
+# Stack tags provide a more reliable solution that works across processes.
 NOTIFICATION_ID_FILE = Path.home() / ".whisper-dictate-notification-id"
 
 # Set up module-level logger
@@ -65,7 +72,14 @@ def _load_notification_id() -> Optional[str]:
     """Load notification ID from file."""
     try:
         if NOTIFICATION_ID_FILE.exists():
-            return NOTIFICATION_ID_FILE.read_text().strip()
+            content = NOTIFICATION_ID_FILE.read_text().strip()
+            lines = content.splitlines()
+            if lines:
+                return lines[0]
+            else:
+                logger.warning(
+                    f"Notification ID file exists but is empty: {NOTIFICATION_ID_FILE}"
+                )
     except Exception as e:
         logger.warning(f"Failed to load notification ID: {e}")
     return None
@@ -78,6 +92,108 @@ def _clear_notification_id() -> None:
             NOTIFICATION_ID_FILE.unlink()
     except Exception as e:
         logger.warning(f"Failed to clear notification ID: {e}")
+
+
+def notify_recording_start() -> bool:
+    """
+    Send a persistent notification when recording starts using stack tags.
+
+    Uses dunst stack tags (x-dunst-stack-tag hint) instead of tracking
+    notification IDs. This approach is recommended by dunst maintainers
+    because:
+    - Works across script invocations and different processes
+    - No need to track/load/save notification IDs
+    - Notifications with same stack tag automatically replace each other
+
+    Returns:
+        bool: True if notification was sent successfully
+    """
+    try:
+        if not is_dunstify_available():
+            logger.warning(
+                "dunstify not available, cannot send persistent notification"
+            )
+            return False
+
+        cmd = [
+            "dunstify",
+            "-h",
+            f"string:x-dunst-stack-tag:{RECORDING_STACK_TAG}",
+            "-t",
+            "0",  # Persistent (0 = infinite)
+            "-u",
+            "critical",  # Red color for recording
+            "Recording",
+            "Dictation in progress...",
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+        if result.returncode != 0:
+            logger.error(
+                "Failed to send recording notification: %s",
+                result.stderr.strip() if result.stderr else "unknown error",
+            )
+            return False
+
+        logger.info("Recording notification sent (stack tag: %s)", RECORDING_STACK_TAG)
+        return True
+
+    except FileNotFoundError:
+        logger.error("dunstify not found")
+        return False
+    except Exception as e:
+        logger.error("Failed to send recording notification: %s", e)
+        return False
+
+
+def notify_recording_stop() -> bool:
+    """
+    Replace the persistent recording notification with a brief "stopped" message.
+
+    Uses the same stack tag to automatically replace the persistent notification.
+    The new notification has a short timeout so it disappears after 2 seconds.
+
+    Returns:
+        bool: True if notification was sent successfully
+    """
+    try:
+        if not is_dunstify_available():
+            logger.warning("dunstify not available, cannot send stop notification")
+            return False
+
+        cmd = [
+            "dunstify",
+            "-h",
+            f"string:x-dunst-stack-tag:{RECORDING_STACK_TAG}",
+            "-t",
+            "2000",  # 2 second timeout
+            "-u",
+            "normal",
+            "Recording Stopped",
+            "Transcription in progress...",
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+        if result.returncode != 0:
+            logger.error(
+                "Failed to send stop notification: %s",
+                result.stderr.strip() if result.stderr else "unknown error",
+            )
+            return False
+
+        logger.info(
+            "Recording stop notification sent (replaced persistent notification)"
+        )
+        return True
+
+    except FileNotFoundError:
+        logger.error("dunstify not found")
+        return False
+    except Exception as e:
+        logger.error("Failed to send stop notification: %s", e)
+        return False
 
 
 # Type aliases for notification parameters
@@ -442,10 +558,19 @@ class PersistentNotification:
             # Update last operation time regardless of success/failure
             PersistentNotification._last_operation_time = time.time()
 
+            # Guard against empty dunstify output
+            output_lines = result.stdout.strip().splitlines()
+            if not output_lines:
+                self._consecutive_failures += 1
+                logger.error("dunstify returned empty output")
+                return None
+
+            output = output_lines[0]
+
             # T5b: Handle action callback
             # When user clicks action button, dunstify returns the action name
             # The output could be either notification ID or action name
-            output = result.stdout.strip()
+            output = result.stdout.strip().splitlines()[0]
 
             if result.returncode == 0 and output:
                 # Check if this is an action response (e.g., "stop")
@@ -556,6 +681,10 @@ class PersistentNotification:
         """Close the persistent notification using -C flag."""
         if not self._is_active:
             logger.info("Close: notification not active, skipping")
+            return True
+
+        if not is_dunstify_available():
+            logger.warning("dunstify not available - cannot close notification")
             return True
 
         logger.info(
@@ -672,5 +801,7 @@ def notify_recording_persistent_stop() -> bool:
         _recording_notification = None
         _clear_notification_id()
         return result
-    logger.info("  Skipping close - no active notification")
-    return True
+    logger.warning(
+        "No notification ID found - cannot close notification (may have already been dismissed)"
+    )
+    return False
