@@ -1,19 +1,19 @@
 ## 1. Database Infrastructure
 
-- [ ] 1.1 Create database module with aiosqlite integration
-- [ ] 1.2 Implement database schema (recordings, transcripts, logs, state, schema_versions tables)
-- [ ] 1.3 Add database initialization logic with version tracking
-- [ ] 1.4 Implement schema migration system
-- [ ] 1.5 Add database integrity check on startup
+- [x] 1.1 Create database module with aiosqlite integration
+- [x] 1.2 Implement database schema (recordings, transcripts, logs, state, schema_versions tables)
+- [x] 1.3 Add database initialization logic with version tracking
+- [x] 1.4 Implement schema migration system
+- [x] 1.5 Add database integrity check on startup
 
 ## 2. Audio Storage
 
-- [ ] 2.1 Create audio storage directory management module
-- [ ] 2.2 Implement date-based directory structure creation
-- [ ] 2.3 Add audio file save functionality after transcription
-- [ ] 2.4 Implement unique filename generation with timestamp
-- [ ] 2.5 Add audio file retrieval by recording ID
-- [ ] 2.6 Implement audio file cleanup on transcript deletion
+- [x] 2.1 Create audio storage directory management module
+- [x] 2.2 Implement date-based directory structure creation
+- [x] 2.3 Add audio file save functionality after transcription
+- [x] 2.4 Implement unique filename generation with timestamp
+- [x] 2.5 Add audio file retrieval by recording ID
+- [x] 2.6 Implement audio file cleanup on transcript deletion
 
 ## 3. Database Logging
 
