@@ -26,6 +26,10 @@ class DatabaseConfig(BaseModel):
         default=None,
         description="Recordings directory path (defaults to XDG data directory)",
     )
+    log_retention_days: int = Field(
+        default=30,
+        description="Number of days to retain database logs",
+    )
 
     def get_database_path(self) -> Path:
         """Get the full database file path.

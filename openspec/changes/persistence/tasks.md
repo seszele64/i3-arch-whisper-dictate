@@ -17,11 +17,11 @@
 
 ## 3. Database Logging
 
-- [ ] 3.1 Create database-backed logging handler
-- [ ] 3.2 Integrate dual logging (file + database)
-- [ ] 3.3 Implement log query functionality
-- [ ] 3.4 Add log filtering (by level, source, date range)
-- [ ] 3.5 Implement log retention cleanup
+- [x] 3.1 Create database-backed logging handler
+- [x] 3.2 Integrate dual logging (file + database)
+- [x] 3.3 Implement log query functionality
+- [x] 3.4 Add log filtering (by level, source, date range)
+- [x] 3.5 Implement log retention cleanup
 
 ## 4. Transcription History CLI
 
@@ -33,9 +33,9 @@
 
 ## 5. Logs CLI
 
-- [ ] 5.1 Create `logs` command group
-- [ ] 5.2 Implement `logs list` with filtering options (--level, --source, --from, --to, --limit)
-- [ ] 5.3 Add `logs export <filename>` functionality
+- [x] 5.1 Create `logs` command group
+- [x] 5.2 Implement `logs list` with filtering options (--level, --source, --from, --to, --limit)
+- [x] 5.3 Add `logs export <filename>` functionality
 
 ## 6. State Migration
 

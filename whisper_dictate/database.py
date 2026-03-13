@@ -713,6 +713,35 @@ class Database:
         result = await self.execute("DELETE FROM state WHERE key = ?", (key,))
         return result.rowcount > 0
 
+    # ============ Log Retention ============
+
+    async def cleanup_old_logs(self, retention_days: int = 30) -> int:
+        """Delete log entries older than the retention period.
+
+        Args:
+            retention_days: Number of days to retain logs
+
+        Returns:
+            int: Number of deleted log entries
+        """
+        async with self.connection() as conn:
+            cursor = await conn.execute(
+                """
+                DELETE FROM logs 
+                WHERE timestamp < datetime('now', ?)
+                """,
+                (f"-{retention_days} days",),
+            )
+            await conn.commit()
+            deleted = cursor.rowcount
+
+        if deleted > 0:
+            logger.info(
+                f"Cleaned up {deleted} old log entries (retention: {retention_days} days)"
+            )
+
+        return deleted
+
     # ============ Utility Methods ============
 
     @staticmethod
