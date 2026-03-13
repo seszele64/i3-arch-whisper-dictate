@@ -63,3 +63,10 @@
   - [x] 8.1.4 Update main flow to pass recording_id from stop to transcribe
   - [x] 8.1.5 Verify transcripts are now saved correctly
   - [x] 8.1.6 Add test case for transcript saving
+
+- [ ] 8.2 Fix recording duration showing as "N/A" in history
+  - [x] 8.2.1 Identify root cause: duration not calculated after recording stops
+- [x] 8.2.2 Add duration calculation using soundfile.info() in transcribe_audio()
+- [x] 8.2.3 Update recording entry with actual duration from audio file
+  - [x] 8.2.4 Verify duration displays correctly in history list
+  - [x] 8.2.5 Add test case for duration calculation

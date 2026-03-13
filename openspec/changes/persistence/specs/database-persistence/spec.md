@@ -62,6 +62,20 @@ The system SHALL store recording metadata in the database after transcription.
 
 ---
 
+### Requirement: Recording duration calculation
+The system SHALL calculate the actual audio file duration after recording completes.
+
+#### Scenario: Calculate duration from audio file after recording
+- **GIVEN** a recording has been created in the database with duration=NULL
+- **WHEN** the recording stops and the audio file is finalized
+- **THEN** the system SHALL calculate the actual duration from the audio file and update the recording entry
+
+#### Scenario: Use soundfile to determine duration
+- **WHEN** calculating recording duration
+- **THEN** the system SHALL use the soundfile library to read the audio file's actual duration in seconds
+
+---
+
 ### Requirement: Transcript storage
 The system SHALL store transcripts associated with recordings in the database.
 

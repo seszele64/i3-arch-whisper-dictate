@@ -11,6 +11,7 @@ import logging
 import signal
 import subprocess
 import asyncio
+import soundfile as sf
 from pathlib import Path
 
 # Add current directory to path
@@ -272,6 +273,24 @@ def transcribe_audio(config, recording_id=None):
         # Transcribe audio
         transcriber = WhisperTranscriber(config.openai)
         audio_to_transcribe = saved_path if saved_path else AUDIO_FILE
+
+        # Calculate and update recording duration
+        if recording_id:
+            try:
+                audio_info = sf.info(audio_to_transcribe)
+                duration = audio_info.duration
+                asyncio.run(
+                    db.execute(
+                        "UPDATE recordings SET duration = ? WHERE id = ?",
+                        (duration, recording_id),
+                    )
+                )
+                logging.debug(
+                    f"Updated recording {recording_id} with duration: {duration:.2f}s"
+                )
+            except Exception as e:
+                logging.warning(f"Failed to calculate recording duration: {e}")
+
         result = transcriber.transcribe_audio(audio_to_transcribe)
 
         # Create transcript entry
