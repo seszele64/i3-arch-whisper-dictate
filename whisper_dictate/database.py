@@ -585,6 +585,145 @@ class Database:
             )
         return None
 
+    async def search_transcripts(
+        self, query: str, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Search transcripts by text (case-insensitive substring match).
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results to return
+
+        Returns:
+            list[dict]: List of matching transcript entries with recording info
+        """
+        search_pattern = f"%{query}%"
+        rows = await self.fetchall(
+            """
+            SELECT t.*, r.file_path, r.timestamp as recording_timestamp, r.duration
+            FROM transcripts t
+            JOIN recordings r ON t.recording_id = r.id
+            WHERE t.text LIKE ?
+            ORDER BY t.timestamp DESC
+            LIMIT ?
+            """,
+            (search_pattern, limit),
+        )
+        return [
+            self._row_to_dict(
+                row,
+                [
+                    "id",
+                    "recording_id",
+                    "text",
+                    "language",
+                    "model_used",
+                    "confidence",
+                    "timestamp",
+                    "created_at",
+                    "file_path",
+                    "recording_timestamp",
+                    "duration",
+                ],
+            )
+            for row in rows
+        ]
+
+    async def list_transcriptions(
+        self, limit: int = 50, date: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        """List transcriptions with optional date filtering and pagination.
+
+        Args:
+            limit: Maximum number of results to return
+            date: Optional date filter (YYYY-MM-DD format)
+
+        Returns:
+            list[dict]: List of transcription entries with recording info
+        """
+        if date:
+            rows = await self.fetchall(
+                """
+                SELECT t.*, r.file_path, r.timestamp as recording_timestamp, r.duration
+                FROM transcripts t
+                JOIN recordings r ON t.recording_id = r.id
+                WHERE date(t.timestamp) = date(?)
+                ORDER BY t.timestamp DESC
+                LIMIT ?
+                """,
+                (date, limit),
+            )
+        else:
+            rows = await self.fetchall(
+                """
+                SELECT t.*, r.file_path, r.timestamp as recording_timestamp, r.duration
+                FROM transcripts t
+                JOIN recordings r ON t.recording_id = r.id
+                ORDER BY t.timestamp DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+
+        return [
+            self._row_to_dict(
+                row,
+                [
+                    "id",
+                    "recording_id",
+                    "text",
+                    "language",
+                    "model_used",
+                    "confidence",
+                    "timestamp",
+                    "created_at",
+                    "file_path",
+                    "recording_timestamp",
+                    "duration",
+                ],
+            )
+            for row in rows
+        ]
+
+    async def get_transcription_with_recording(
+        self, transcript_id: int
+    ) -> Optional[dict[str, Any]]:
+        """Get a transcript with full recording details by transcript ID.
+
+        Args:
+            transcript_id: Transcript ID
+
+        Returns:
+            Optional[dict]: Transcript data with recording info, or None
+        """
+        row = await self.fetchone(
+            """
+            SELECT t.*, r.file_path, r.timestamp as recording_timestamp, r.duration
+            FROM transcripts t
+            JOIN recordings r ON t.recording_id = r.id
+            WHERE t.id = ?
+            """,
+            (transcript_id,),
+        )
+        if row:
+            return self._row_to_dict(
+                row,
+                [
+                    "id",
+                    "recording_id",
+                    "text",
+                    "language",
+                    "model_used",
+                    "confidence",
+                    "timestamp",
+                    "created_at",
+                    "file_path",
+                    "recording_timestamp",
+                    "duration",
+                ],
+            )
+        return None
+
     # ============ Log Operations ============
 
     async def create_log(

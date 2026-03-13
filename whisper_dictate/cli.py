@@ -9,7 +9,7 @@ import click
 
 from whisper_dictate.config import load_config, DatabaseConfig
 from whisper_dictate.dictation import DictationService
-from whisper_dictate.database import get_database, initialize_database
+from whisper_dictate.database import get_database
 
 
 def setup_logging(level: str, enable_db_logging: bool = True) -> None:
@@ -393,6 +393,297 @@ def cleanup_logs(days: Optional[int]) -> None:
     except Exception as e:
         click.echo(f"Error cleaning up logs: {e}", err=True)
         sys.exit(1)
+
+
+# ============ History Command Group ============
+
+
+@click.group()
+def history() -> None:
+    """Query and manage transcription history stored in the database.
+
+    This command group provides functionality to view, search,
+    and delete past transcriptions.
+    """
+    pass
+
+
+@history.command("list")
+@click.option(
+    "--limit", type=int, default=20, help="Maximum number of transcriptions to display"
+)
+@click.option("--date", help="Filter by date (YYYY-MM-DD format)")
+def list_history(limit: int, date: Optional[str]) -> None:
+    """List recent transcriptions with pagination.
+
+    Examples:
+        whisper-dictate history list
+        whisper-dictate history list --limit 10
+        whisper-dictate history list --date 2024-03-15
+    """
+    from whisper_dictate.database import get_database
+    from whisper_dictate.config import DatabaseConfig
+
+    try:
+        db_config = DatabaseConfig()
+        db = get_database(db_config)
+        asyncio.run(db.initialize())
+
+        transcriptions = asyncio.run(db.list_transcriptions(limit=limit, date=date))
+
+        if not transcriptions:
+            click.echo("No transcriptions found.")
+            return
+
+        click.echo(
+            f"Recent Transcriptions (showing {len(transcriptions)} of {len(transcriptions)}):\n"
+        )
+        click.echo(f"{'ID':<5} {'Date':<20} {'Duration':<10} {'Preview':<50}")
+        click.echo("-" * 90)
+
+        for t in transcriptions:
+            # Format timestamp
+            timestamp = t.get("timestamp", "N/A")
+            date_str = timestamp.split()[0] if timestamp != "N/A" else "N/A"
+            time_str = (
+                timestamp.split()[1][:8]
+                if " " in timestamp and len(timestamp.split()) > 1
+                else ""
+            )
+
+            # Format duration
+            duration = t.get("duration")
+            duration_str = f"{duration:.1f}s" if duration else "N/A"
+
+            # Truncate text for preview
+            text = t.get("text", "")
+            preview = text[:47] + "..." if len(text) > 50 else text
+
+            click.echo(
+                f"{t['id']:<5} {date_str} {time_str:<10} {duration_str:<10} {preview:<50}"
+            )
+
+    except Exception as e:
+        click.echo(f"Error listing transcriptions: {e}", err=True)
+        sys.exit(1)
+
+
+@history.command("show")
+@click.argument("transcript_id", type=int)
+@click.option("--audio", is_flag=True, help="Show audio file path")
+def show_history(transcript_id: int, audio: bool) -> None:
+    """Show full details of a transcription by ID.
+
+    Examples:
+        whisper-dictate history show 42
+        whisper-dictate history show 42 --audio
+    """
+    from whisper_dictate.database import get_database
+    from whisper_dictate.config import DatabaseConfig
+    from whisper_dictate.audio_storage import get_audio_storage
+
+    try:
+        db_config = DatabaseConfig()
+        db = get_database(db_config)
+        asyncio.run(db.initialize())
+
+        transcription = asyncio.run(db.get_transcription_with_recording(transcript_id))
+
+        if not transcription:
+            click.echo(
+                f"Error: Transcription with ID {transcript_id} not found.", err=True
+            )
+            sys.exit(1)
+
+        click.echo("=" * 60)
+        click.echo(f"Transcription #{transcription['id']}")
+        click.echo("=" * 60)
+
+        # Timestamp
+        timestamp = transcription.get("timestamp", "N/A")
+        click.echo(f"\n📅 Date: {timestamp}")
+
+        # Duration
+        duration = transcription.get("duration")
+        if duration:
+            click.echo(f"⏱️  Duration: {duration:.1f} seconds")
+
+        # Language
+        language = transcription.get("language")
+        if language:
+            click.echo(f"🌐 Language: {language}")
+
+        # Model
+        model = transcription.get("model_used", "N/A")
+        click.echo(f"🤖 Model: {model}")
+
+        # Confidence
+        confidence = transcription.get("confidence")
+        if confidence:
+            click.echo(f"📊 Confidence: {confidence:.1%}")
+
+        # Audio file path
+        if audio:
+            audio_storage = get_audio_storage(db_config)
+            audio_path = audio_storage.get_audio_path(transcription["file_path"])
+            click.echo(f"\n🎵 Audio File: {audio_path}")
+
+        # Full transcript text
+        click.echo("\n" + "-" * 60)
+        click.echo("📝 Transcript:")
+        click.echo("-" * 60)
+        click.echo(transcription.get("text", ""))
+
+    except Exception as e:
+        click.echo(f"Error showing transcription: {e}", err=True)
+        sys.exit(1)
+
+
+@history.command("search")
+@click.argument("query")
+@click.option(
+    "--limit", type=int, default=20, help="Maximum number of results to display"
+)
+def search_history(query: str, limit: int) -> None:
+    """Search transcriptions by text (case-insensitive).
+
+    Examples:
+        whisper-dictate history search "meeting"
+        whisper-dictate history search "project" --limit 50
+    """
+    from whisper_dictate.database import get_database
+    from whisper_dictate.config import DatabaseConfig
+
+    try:
+        db_config = DatabaseConfig()
+        db = get_database(db_config)
+        asyncio.run(db.initialize())
+
+        results = asyncio.run(db.search_transcripts(query, limit=limit))
+
+        if not results:
+            click.echo(f"No transcriptions found matching: '{query}'")
+            return
+
+        click.echo(f"Found {len(results)} transcription(s) matching: '{query}'\n")
+        click.echo(f"{'ID':<5} {'Date':<20} {'Match Preview':<55}")
+        click.echo("-" * 85)
+
+        for t in results:
+            # Format timestamp
+            timestamp = t.get("timestamp", "N/A")
+            date_str = timestamp.split()[0] if timestamp != "N/A" else "N/A"
+            time_str = (
+                timestamp.split()[1][:8]
+                if " " in timestamp and len(timestamp.split()) > 1
+                else ""
+            )
+
+            # Highlight matching text
+            text = t.get("text", "")
+            # Find position of query (case-insensitive)
+            lower_text = text.lower()
+            lower_query = query.lower()
+            pos = lower_text.find(lower_query)
+
+            if pos >= 0:
+                # Get context around the match
+                start = max(0, pos - 20)
+                end = min(len(text), pos + len(query) + 20)
+                preview = (
+                    ("..." if start > 0 else "")
+                    + text[start:end]
+                    + ("..." if end < len(text) else "")
+                )
+            else:
+                preview = text[:52] + "..." if len(text) > 55 else text
+
+            click.echo(f"{t['id']:<5} {date_str} {time_str:<10} {preview:<55}")
+
+    except Exception as e:
+        click.echo(f"Error searching transcriptions: {e}", err=True)
+        sys.exit(1)
+
+
+@history.command("delete")
+@click.argument("transcript_id", type=int)
+@click.option("--yes", "confirm_yes", is_flag=True, help="Skip confirmation prompt")
+def delete_history(transcript_id: int, confirm_yes: bool) -> None:
+    """Delete a transcription and its associated audio file.
+
+    Examples:
+        whisper-dictate history delete 42
+        whisper-dictate history delete 42 --yes
+    """
+    from whisper_dictate.database import get_database
+    from whisper_dictate.config import DatabaseConfig
+    from whisper_dictate.audio_storage import get_audio_storage
+
+    try:
+        db_config = DatabaseConfig()
+        db = get_database(db_config)
+        asyncio.run(db.initialize())
+
+        # First get the transcription to verify it exists and get audio path
+        transcription = asyncio.run(db.get_transcription_with_recording(transcript_id))
+
+        if not transcription:
+            click.echo(
+                f"Error: Transcription with ID {transcript_id} not found.", err=True
+            )
+            sys.exit(1)
+
+        # Show info about what will be deleted
+        timestamp = transcription.get("timestamp", "N/A")
+        text_preview = transcription.get("text", "")[:50]
+        text_preview = (
+            text_preview + "..."
+            if len(transcription.get("text", "")) > 50
+            else text_preview
+        )
+
+        click.echo(f"About to delete transcription #{transcript_id}:")
+        click.echo(f"  Date: {timestamp}")
+        click.echo(f"  Preview: {text_preview}")
+
+        # Confirm deletion
+        if not confirm_yes:
+            if not click.confirm(
+                "\nAre you sure you want to delete this transcription?"
+            ):
+                click.echo("Deletion cancelled.")
+                return
+
+        # Delete the recording (cascades to transcript due to foreign key)
+        audio_path = None
+        if transcription.get("file_path"):
+            audio_storage = get_audio_storage(db_config)
+            audio_path = audio_storage.get_audio_path(transcription["file_path"])
+
+        recording_id = transcription.get("recording_id")
+        deleted = asyncio.run(db.delete_recording(recording_id))
+
+        if deleted:
+            # Also delete the audio file if it exists
+            if audio_path and audio_path.exists():
+                audio_path.unlink()
+                click.echo(f"Deleted audio file: {audio_path}")
+
+            click.echo(f"✅ Deleted transcription #{transcript_id}")
+        else:
+            click.echo(
+                f"Error: Failed to delete transcription #{transcript_id}", err=True
+            )
+            sys.exit(1)
+
+    except Exception as e:
+        click.echo(f"Error deleting transcription: {e}", err=True)
+        sys.exit(1)
+
+
+# Register subcommands with the main cli group
+cli.add_command(logs)
+cli.add_command(history)
 
 
 if __name__ == "__main__":

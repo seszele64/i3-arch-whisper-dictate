@@ -25,11 +25,11 @@
 
 ## 4. Transcription History CLI
 
-- [ ] 4.1 Create `history` command group
-- [ ] 4.2 Implement `history list` with pagination
-- [ ] 4.3 Implement `history show <id>` for full details
-- [ ] 4.4 Add `history search <query>` functionality
-- [ ] 4.5 Implement `history delete <id>` with confirmation
+- [x] 4.1 Create `history` command group
+- [x] 4.2 Implement `history list` with pagination
+- [x] 4.3 Implement `history show <id>` for full details
+- [x] 4.4 Add `history search <query>` functionality
+- [x] 4.5 Implement `history delete <id>` with confirmation
 
 ## 5. Logs CLI
 
