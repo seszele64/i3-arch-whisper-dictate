@@ -48,8 +48,8 @@
 
 ## 7. Integration and Testing
 
-- [ ] 7.1 Integrate persistence layer with DictationService
-- [ ] 7.2 Update audio recorder to save files instead of delete
-- [ ] 7.3 Add new dependencies to requirements.txt
-- [ ] 7.4 Run tests and fix any issues
-- [ ] 7.5 Verify all CLI commands work correctly
+- [x] 7.1 Integrate persistence layer with DictationService
+- [x] 7.2 Update audio recorder to save files instead of delete
+- [x] 7.3 Add new dependencies to requirements.txt
+- [x] 7.4 Run tests and fix any issues
+- [x] 7.5 Verify all CLI commands work correctly
