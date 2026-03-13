@@ -5,6 +5,7 @@ soundfile>=0.12.1
 pydantic>=2.0.0
 click>=8.0.0
 python-dotenv>=1.0.0
+aiosqlite>=0.20.0
 
 # System dependencies (install via package manager)
 # - dunst: Notification daemon (required for persistent notifications)
