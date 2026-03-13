@@ -251,7 +251,8 @@ def transcribe_audio(config):
 
         # Transcribe audio
         transcriber = WhisperTranscriber(config.openai)
-        result = transcriber.transcribe_audio(AUDIO_FILE)
+        audio_to_transcribe = saved_path if saved_path else AUDIO_FILE
+        result = transcriber.transcribe_audio(audio_to_transcribe)
 
         # Create transcript entry
         if recording_id:
