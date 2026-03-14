@@ -104,14 +104,20 @@ def is_recording():
 
     Checks database state first, falls back to file-based state for compatibility.
     """
-    # Try database state first
+    db = None
     try:
-        db, _ = get_db_and_storage()
-        is_recording = asyncio.run(db.get_state(STATE_KEY_RECORDING))
-        if is_recording is True:
-            return True
-    except Exception:
-        pass  # Fall back to file-based state
+        # Try database state first
+        try:
+            db, _ = get_db_and_storage()
+            is_recording = asyncio.run(db.get_state(STATE_KEY_RECORDING))
+            if is_recording is True:
+                return True
+        except Exception:
+            pass  # Fall back to file-based state
+    finally:
+        # Always close database connection
+        if db is not None:
+            asyncio.run(db.close())
 
     # Fall back to file-based state
     return PID_FILE.exists() and STATE_FILE.exists()
@@ -129,6 +135,7 @@ def get_recording_pid():
 
 def start_background_recording(config):
     """Start background recording process using arecord."""
+    db = None
     try:
         # Build the command - use default device
         cmd = [
@@ -180,6 +187,11 @@ def start_background_recording(config):
         notify_error(f"Failed to start recording: {e}")
         return None
 
+    finally:
+        # Always close database connection
+        if db is not None:
+            asyncio.run(db.close())
+
 
 def stop_background_recording():
     """Stop background recording and process the audio.
@@ -189,6 +201,7 @@ def stop_background_recording():
                before clearing it from state, so it can be used for transcription.
     """
     recording_id = None
+    db = None
 
     try:
         # Get recording_id BEFORE clearing state (for transcription use)
@@ -216,9 +229,10 @@ def stop_background_recording():
         if STATE_FILE.exists():
             STATE_FILE.unlink()
 
-        # Clear database state
+        # Clear database state (reuse db connection if available)
         try:
-            db, _ = get_db_and_storage()
+            if db is None:
+                db, _ = get_db_and_storage()
             asyncio.run(db.set_state(STATE_KEY_RECORDING, False))
             asyncio.run(db.delete_state(STATE_KEY_RECORDING_ID))
         except Exception as e:
@@ -230,6 +244,11 @@ def stop_background_recording():
         logging.error(f"Error stopping recording: {e}")
         return False, None
 
+    finally:
+        # Always close database connection
+        if db is not None:
+            asyncio.run(db.close())
+
 
 def transcribe_audio(config, recording_id=None):
     """Transcribe the recorded audio.
@@ -238,6 +257,7 @@ def transcribe_audio(config, recording_id=None):
         config: Configuration object
         recording_id: Optional recording ID. If not provided, will attempt to get from state.
     """
+    db = None
     try:
         if not AUDIO_FILE.exists():
             logging.error("No audio file found")
@@ -324,6 +344,9 @@ def transcribe_audio(config, recording_id=None):
         return None
 
     finally:
+        # Close database connection
+        if db is not None:
+            asyncio.run(db.close())
         # Clean up audio file (it's been saved to persistent storage)
         if AUDIO_FILE.exists():
             AUDIO_FILE.unlink()

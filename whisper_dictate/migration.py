@@ -460,6 +460,14 @@ class MigrationManager:
         """
         return self._migration_log.copy()
 
+    async def close(self) -> None:
+        """Close the database connection.
+
+        This should be called after migration is complete to properly
+        release database resources.
+        """
+        await self._db.close()
+
 
 async def run_migration(force: bool = False) -> dict[str, Any]:
     """Run state migration.
@@ -476,8 +484,11 @@ async def run_migration(force: bool = False) -> dict[str, Any]:
         MigrationError: If migration fails
     """
     manager = MigrationManager()
-    await manager.initialize()
-    return await manager.run_migration(force=force)
+    try:
+        await manager.initialize()
+        return await manager.run_migration(force=force)
+    finally:
+        await manager.close()
 
 
 async def check_migration_status() -> dict[str, Any]:
@@ -487,14 +498,17 @@ async def check_migration_status() -> dict[str, Any]:
         dict: Status information including whether migration is needed
     """
     manager = MigrationManager()
-    await manager.initialize()
+    try:
+        await manager.initialize()
 
-    legacy_files = manager.detect_legacy_files()
-    is_completed = await manager.is_migration_completed()
+        legacy_files = manager.detect_legacy_files()
+        is_completed = await manager.is_migration_completed()
 
-    return {
-        "legacy_files": legacy_files,
-        "has_legacy_files": any(legacy_files.values()),
-        "migration_completed": is_completed,
-        "migration_needed": any(legacy_files.values()) and not is_completed,
-    }
+        return {
+            "legacy_files": legacy_files,
+            "has_legacy_files": any(legacy_files.values()),
+            "migration_completed": is_completed,
+            "migration_needed": any(legacy_files.values()) and not is_completed,
+        }
+    finally:
+        await manager.close()

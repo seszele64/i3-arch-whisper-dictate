@@ -57,3 +57,38 @@ The system SHALL handle migration failures without breaking the application.
 #### Scenario: Skip migration if already done
 - **WHEN** migration has already been completed
 - **THEN** the system skips migration and uses the database directly
+
+---
+
+## CLI Integration
+
+### Database Lifecycle Requirements
+
+All CLI commands that interact with the database MUST follow the database lifecycle pattern:
+
+#### Required Pattern
+
+1. **Initialization**: Call `asyncio.run(db.initialize())` before any database operations
+2. **Cleanup**: Call `asyncio.run(db.close())` in a `finally` block after operations complete
+
+#### Implementation Options (in priority order)
+
+1. **Preferred**: Use the `@with_database` decorator from `whisper_dictate.cli_helpers`
+2. **Alternative**: Manual try/finally pattern (if decorator insufficient)
+
+#### Example
+
+```python
+@cli.command()
+@with_database
+@click.pass_context
+def command_name(ctx, ...):
+    db = ctx.obj['db']
+    results = asyncio.run(db.some_query())
+```
+
+#### Verification
+
+- All database-using CLI commands must include `db.close()` in their execution path
+- Commands should not hang on exit after completion
+- Commands must call `initialize()` before querying

@@ -70,3 +70,47 @@
 - [x] 8.2.3 Update recording entry with actual duration from audio file
   - [x] 8.2.4 Verify duration displays correctly in history list
   - [x] 8.2.5 Add test case for duration calculation
+
+- [ ] 8.3 Fix history CLI commands hanging on exit
+  - [ ] 8.3.1 Identify root cause: database connection not closed after commands
+  - [ ] 8.3.2 Add asyncio.run(db.close()) to history list command
+  - [ ] 8.3.3 Add asyncio.run(db.close()) to history show command
+  - [ ] 8.3.4 Add asyncio.run(db.close()) to history search command
+  - [ ] 8.3.5 Add asyncio.run(db.close()) to history delete command
+  - [ ] 8.3.6 Verify all history commands exit cleanly without Ctrl+C
+
+## 9. Systematic Database Lifecycle Pattern
+
+Priority: HIGH - This is a systemic bug affecting multiple commands
+
+- [x] 9.1 Create `@with_database` decorator (RECOMMENDED)
+  - [x] 9.1.1 Implement decorator in `cli_helpers.py`
+  - [x] 9.1.2 Add proper error handling
+  - [x] 9.1.3 Add tests for decorator behavior
+
+- [x] 9.2 Fix logs CLI commands
+  - [x] 9.2.1 Fix `logs list` - add initialize and close
+  - [x] 9.2.2 Fix `logs export` - add initialize and close
+  - [x] 9.2.3 Fix `logs cleanup` - add initialize and close
+  - [x] 9.2.4 Verify all logs commands exit cleanly
+
+- [x] 9.3 Fix migrate command
+  - [x] 9.3.1 Add database cleanup to migrate command
+  - [x] 9.3.2 Verify migrate exits cleanly
+
+- [x] 9.4 Fix toggle_dictate.py
+  - [x] 9.4.1 Add database cleanup after operations
+  - [x] 9.4.2 Verify toggle_dictate exits cleanly
+
+- [x] 9.5 Fix dictation.py
+  - [x] 9.5.1 Add database cleanup after dictation
+  - [x] 9.5.2 Verify dictation service exits cleanly
+
+- [x] 9.6 Update OpenSpec specs
+  - [x] 9.6.1 Add database lifecycle requirements to transcript-history spec
+  - [x] 9.6.2 Add database lifecycle requirements to structured-logging spec
+  - [x] 9.6.3 Add database lifecycle requirements to state-migration spec
+
+- [x] 9.7 Add test coverage
+  - [x] 9.7.1 Add test that verifies all CLI commands close database
+  - [x] 9.7.2 Add integration test for CLI database cleanup

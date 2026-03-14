@@ -10,6 +10,7 @@ import click
 from whisper_dictate.config import load_config, DatabaseConfig
 from whisper_dictate.dictation import DictationService
 from whisper_dictate.database import get_database
+from whisper_dictate.cli_helpers import with_database
 
 
 def setup_logging(level: str, enable_db_logging: bool = True) -> None:
@@ -152,6 +153,8 @@ def dictate(ctx: click.Context, duration: Optional[float]) -> None:
     except Exception as e:
         click.echo(f"❌ Error: {e}", err=True)
         sys.exit(1)
+    finally:
+        service.close_sync()
 
 
 @cli.command()
@@ -234,15 +237,16 @@ def list_logs(
         whisper-dictate logs list --source whisper_dictate.audio --limit 50
         whisper-dictate logs list --from-time "2024-01-01" --to-time "2024-01-31"
     """
+    import json
     from whisper_dictate.database import get_database
     from whisper_dictate.config import DatabaseConfig
-    import json
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
+        asyncio.run(db.initialize())
 
-        # Run async function
         logs = asyncio.run(
             db.query_logs(
                 level=level,
@@ -288,6 +292,9 @@ def list_logs(
     except Exception as e:
         click.echo(f"Error querying logs: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 @logs.command("export")
@@ -320,13 +327,15 @@ def export_logs(
         whisper-dictate logs export logs.txt
         whisper-dictate logs export error_logs.json --level ERROR --format json
     """
+    import json
     from whisper_dictate.database import get_database
     from whisper_dictate.config import DatabaseConfig
-    import json
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
+        asyncio.run(db.initialize())
 
         # Get all logs (no limit for export)
         logs = asyncio.run(
@@ -361,6 +370,9 @@ def export_logs(
     except Exception as e:
         click.echo(f"Error exporting logs: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 @logs.command("cleanup")
@@ -380,11 +392,17 @@ def cleanup_logs(days: Optional[int]) -> None:
     from whisper_dictate.database import get_database
     from whisper_dictate.config import DatabaseConfig
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
+        asyncio.run(db.initialize())
 
-        retention_days = days if days is not None else db_config.log_retention_days
+        # Get retention days from config if not provided
+        if days is None:
+            retention_days = db_config.log_retention_days
+        else:
+            retention_days = days
 
         deleted = asyncio.run(db.cleanup_old_logs(retention_days))
 
@@ -393,6 +411,9 @@ def cleanup_logs(days: Optional[int]) -> None:
     except Exception as e:
         click.echo(f"Error cleaning up logs: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 # ============ History Command Group ============
@@ -424,6 +445,7 @@ def list_history(limit: int, date: Optional[str]) -> None:
     from whisper_dictate.database import get_database
     from whisper_dictate.config import DatabaseConfig
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
@@ -466,6 +488,9 @@ def list_history(limit: int, date: Optional[str]) -> None:
     except Exception as e:
         click.echo(f"Error listing transcriptions: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 @history.command("show")
@@ -482,6 +507,7 @@ def show_history(transcript_id: int, audio: bool) -> None:
     from whisper_dictate.config import DatabaseConfig
     from whisper_dictate.audio_storage import get_audio_storage
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
@@ -537,6 +563,9 @@ def show_history(transcript_id: int, audio: bool) -> None:
     except Exception as e:
         click.echo(f"Error showing transcription: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 @history.command("search")
@@ -554,6 +583,7 @@ def search_history(query: str, limit: int) -> None:
     from whisper_dictate.database import get_database
     from whisper_dictate.config import DatabaseConfig
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
@@ -603,6 +633,9 @@ def search_history(query: str, limit: int) -> None:
     except Exception as e:
         click.echo(f"Error searching transcriptions: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 @history.command("delete")
@@ -619,6 +652,7 @@ def delete_history(transcript_id: int, confirm_yes: bool) -> None:
     from whisper_dictate.config import DatabaseConfig
     from whisper_dictate.audio_storage import get_audio_storage
 
+    db = None
     try:
         db_config = DatabaseConfig()
         db = get_database(db_config)
@@ -679,6 +713,9 @@ def delete_history(transcript_id: int, confirm_yes: bool) -> None:
     except Exception as e:
         click.echo(f"Error deleting transcription: {e}", err=True)
         sys.exit(1)
+    finally:
+        if db:
+            asyncio.run(db.close())
 
 
 # Register subcommands with the main cli group

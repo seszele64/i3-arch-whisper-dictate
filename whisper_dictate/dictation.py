@@ -214,6 +214,18 @@ class DictationService:
                 except Exception as e:
                     logger.warning(f"Failed to clean up temporary file: {e}")
 
+    async def close(self) -> None:
+        """Close the database connection."""
+        if self._db:
+            await self._db.close()
+            self._db = None
+
+    def close_sync(self) -> None:
+        """Synchronous wrapper for close()."""
+        if self._db:
+            asyncio.run(self._db.close())
+            self._db = None
+
     def get_system_info(self) -> dict:
         """WHY THIS EXISTS: Users need diagnostic information to troubleshoot
         configuration issues.
