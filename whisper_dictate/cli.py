@@ -112,7 +112,11 @@ def cli(ctx: click.Context, log_level: str) -> None:
     try:
         config = load_config()
         ctx.obj["config"] = config
-        ctx.obj["service"] = DictationService(config)
+        service = DictationService(config)
+        ctx.obj["service"] = service
+
+        # Register cleanup to close service after any command
+        ctx.call_on_close(service.close_sync)
     except ValueError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
@@ -153,8 +157,6 @@ def dictate(ctx: click.Context, duration: Optional[float]) -> None:
     except Exception as e:
         click.echo(f"❌ Error: {e}", err=True)
         sys.exit(1)
-    finally:
-        service.close_sync()
 
 
 @cli.command()
