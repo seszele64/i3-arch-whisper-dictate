@@ -14,19 +14,7 @@ from whisper_dictate.cli_helpers import with_database
 
 
 def setup_logging(level: str, enable_db_logging: bool = True) -> None:
-    """WHY THIS EXISTS: Logging needs to be configured consistently
-    across the application for debugging and monitoring.
-
-    RESPONSIBILITY: Configure logging with specified level, format, and handlers.
-    Supports dual logging (file + database) when database is available.
-    BOUNDARIES:
-    - DOES: Set up logging configuration with file and optional database output
-    - DOES NOT: Handle log rotation or database initialization
-
-    Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR)
-        enable_db_logging: Whether to enable database logging
-    """
+    """Configure application logging with file and optional database output."""
     from pathlib import Path
 
     # Create log directory
@@ -94,18 +82,7 @@ def setup_logging(level: str, enable_db_logging: bool = True) -> None:
 @click.option("--log-level", default="INFO", help="Logging level")
 @click.pass_context
 def cli(ctx: click.Context, log_level: str) -> None:
-    """WHY THIS EXISTS: Users need a command-line interface to interact
-    with the dictation service without writing code.
-
-    RESPONSIBILITY: Provide command-line interface for dictation operations.
-    BOUNDARIES:
-    - DOES: Handle command-line arguments and user interaction
-    - DOES NOT: Implement core dictation logic
-
-    Args:
-        ctx: Click context
-        log_level: Logging level
-    """
+    """Whisper-dictate: Voice-to-text dictation with clipboard integration."""
     setup_logging(log_level)
     ctx.ensure_object(dict)
 
@@ -126,17 +103,7 @@ def cli(ctx: click.Context, log_level: str) -> None:
 @click.option("--duration", type=float, help="Recording duration in seconds")
 @click.pass_context
 def dictate(ctx: click.Context, duration: Optional[float]) -> None:
-    """WHY THIS EXISTS: Users need a simple command to start dictation.
-
-    RESPONSIBILITY: Execute dictation workflow from command line.
-    BOUNDARIES:
-    - DOES: Handle user interaction and display results
-    - DOES NOT: Implement core dictation logic
-
-    Args:
-        ctx: Click context
-        duration: Recording duration in seconds
-    """
+    """Record audio and transcribe it to text."""
     service = ctx.obj["service"]
 
     try:
@@ -162,17 +129,7 @@ def dictate(ctx: click.Context, duration: Optional[float]) -> None:
 @cli.command()
 @click.pass_context
 def info(ctx: click.Context) -> None:
-    """WHY THIS EXISTS: Users need diagnostic information to troubleshoot
-    configuration issues.
-
-    RESPONSIBILITY: Display system diagnostic information.
-    BOUNDARIES:
-    - DOES: Display system information
-    - DOES NOT: Perform system modifications
-
-    Args:
-        ctx: Click context
-    """
+    """Display system information and configuration."""
     service = ctx.obj["service"]
     info = service.get_system_info()
 
