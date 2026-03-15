@@ -1,3 +1,9 @@
 .coverage
 .opencode/
 =0.*
+
+# Python
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
