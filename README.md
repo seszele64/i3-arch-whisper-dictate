@@ -19,9 +19,6 @@ A Python CLI for voice dictation using OpenAI Whisper API with global key bindin
 ```bash
 # Install in editable mode for development
 pip install -e .
-
-# Or install from PyPI (when published)
-pip install whisper-dictate
 ```
 
 ### 2. Set OpenAI API Key
