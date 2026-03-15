@@ -59,7 +59,9 @@ class TestTranscribeAudio:
 
         with (
             patch.object(toggle_dictate, "get_db_and_storage") as mock_get_db_storage,
-            patch("soundfile.info", return_value=mock_audio_info) as mock_sf_info,
+            patch(
+                "toggle_dictate.sf.info", return_value=mock_audio_info
+            ) as mock_sf_info,
             patch("toggle_dictate.WhisperTranscriber") as mock_transcriber_class,
             patch("toggle_dictate.AUDIO_FILE", mock_audio_file),
             patch("toggle_dictate.ClipboardManager") as mock_clipboard_class,
