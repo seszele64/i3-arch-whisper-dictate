@@ -64,20 +64,20 @@
   - [x] 8.1.5 Verify transcripts are now saved correctly
   - [x] 8.1.6 Add test case for transcript saving
 
-- [ ] 8.2 Fix recording duration showing as "N/A" in history
+- [x] 8.2 Fix recording duration showing as "N/A" in history
   - [x] 8.2.1 Identify root cause: duration not calculated after recording stops
 - [x] 8.2.2 Add duration calculation using soundfile.info() in transcribe_audio()
 - [x] 8.2.3 Update recording entry with actual duration from audio file
   - [x] 8.2.4 Verify duration displays correctly in history list
   - [x] 8.2.5 Add test case for duration calculation
 
-- [ ] 8.3 Fix history CLI commands hanging on exit
-  - [ ] 8.3.1 Identify root cause: database connection not closed after commands
-  - [ ] 8.3.2 Add asyncio.run(db.close()) to history list command
-  - [ ] 8.3.3 Add asyncio.run(db.close()) to history show command
-  - [ ] 8.3.4 Add asyncio.run(db.close()) to history search command
-  - [ ] 8.3.5 Add asyncio.run(db.close()) to history delete command
-  - [ ] 8.3.6 Verify all history commands exit cleanly without Ctrl+C
+- [x] 8.3 Fix history CLI commands hanging on exit
+  - [x] 8.3.1 Identify root cause: database connection not closed after commands
+  - [x] 8.3.2 Add asyncio.run(db.close()) to history list command
+  - [x] 8.3.3 Add asyncio.run(db.close()) to history show command
+  - [x] 8.3.4 Add asyncio.run(db.close()) to history search command
+  - [x] 8.3.5 Add asyncio.run(db.close()) to history delete command
+  - [x] 8.3.6 Verify all history commands exit cleanly without Ctrl+C
 
 ## 9. Systematic Database Lifecycle Pattern
 

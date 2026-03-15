@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from whisper_dictate.config import AppConfig, DatabaseConfig
 from whisper_dictate.audio import AudioRecorder
@@ -63,12 +63,23 @@ class DictationService:
         """Get or create audio storage instance (lazy initialization).
 
         Returns:
-            AudioStorage: Audio storage instance
+            AudioStorage: Initialized audio storage instance
         """
         if self._audio_storage is None:
             db_config = DatabaseConfig()
             self._audio_storage = get_audio_storage(db_config)
         return self._audio_storage
+
+    def check_disk_space(self) -> Tuple[bool, int]:
+        """Check if there's enough disk space for recording.
+
+        Returns:
+            Tuple[bool, int]: (has_space, available_mb) - True if enough space available,
+                             and the available space in MB
+        """
+        db_config = DatabaseConfig()
+        min_free_mb = db_config.min_free_space_mb
+        return self.audio_storage.check_disk_space(min_free_mb)
 
     def dictate(
         self, duration: Optional[float] = None
@@ -94,6 +105,14 @@ class DictationService:
         recording_id: Optional[int] = None
 
         try:
+            # Check disk space before recording
+            has_space, available_mb = self.check_disk_space()
+            if not has_space:
+                logger.warning(
+                    f"Low disk space: only {available_mb}MB available. "
+                    f"Recording may fail if disk fills up."
+                )
+
             # Record audio
             logger.info("Starting dictation workflow")
             audio_file = self.audio_recorder.record_to_file(duration)

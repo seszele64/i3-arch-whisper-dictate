@@ -30,6 +30,10 @@ class DatabaseConfig(BaseModel):
         default=30,
         description="Number of days to retain database logs",
     )
+    min_free_space_mb: int = Field(
+        default=100,
+        description="Minimum free disk space required in MB before recording",
+    )
 
     def get_database_path(self) -> Path:
         """Get the full database file path.

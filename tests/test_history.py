@@ -163,7 +163,7 @@ class TestHistoryListNoHang:
         The fix adds asyncio.run(db.close()) in the finally block.
         """
         # Patch at the database module level since CLI imports it locally
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             # Run the command - should complete quickly without hanging
@@ -181,7 +181,7 @@ class TestHistoryListNoHang:
         self, cli_runner, mock_database_empty
     ):
         """Verify history list exits cleanly when no transcriptions exist."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -192,7 +192,7 @@ class TestHistoryListNoHang:
 
     def test_history_list_with_limit_option(self, cli_runner, mock_database_with_data):
         """Verify history list --limit option works and closes connection."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             result = cli_runner.invoke(cli, ["history", "list", "--limit", "10"])
@@ -202,7 +202,7 @@ class TestHistoryListNoHang:
 
     def test_history_list_with_date_option(self, cli_runner, mock_database_empty):
         """Verify history list --date option works and closes connection."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty
 
             result = cli_runner.invoke(cli, ["history", "list", "--date", "2024-03-15"])
@@ -218,7 +218,7 @@ class TestHistoryShowNoHang:
         self, cli_runner, mock_database_with_data
     ):
         """Verify history show command exits cleanly with valid ID."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             result = cli_runner.invoke(cli, ["history", "show", "1"])
@@ -233,7 +233,7 @@ class TestHistoryShowNoHang:
         self, cli_runner, mock_database_not_found
     ):
         """Verify history show exits cleanly when ID doesn't exist."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_not_found
 
             result = cli_runner.invoke(cli, ["history", "show", "999"])
@@ -245,7 +245,7 @@ class TestHistoryShowNoHang:
 
     def test_history_show_with_audio_option(self, cli_runner, mock_database_with_data):
         """Verify history show --audio option works and closes connection."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             with patch(
@@ -268,7 +268,7 @@ class TestHistorySearchNoHang:
         self, cli_runner, mock_database_with_data
     ):
         """Verify history search command exits cleanly with matching results."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             result = cli_runner.invoke(cli, ["history", "search", "meeting"])
@@ -283,7 +283,7 @@ class TestHistorySearchNoHang:
         self, cli_runner, mock_database_empty
     ):
         """Verify history search exits cleanly when no results found."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty
 
             result = cli_runner.invoke(
@@ -298,7 +298,7 @@ class TestHistorySearchNoHang:
         self, cli_runner, mock_database_with_data
     ):
         """Verify history search --limit option works and closes connection."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             result = cli_runner.invoke(
@@ -316,7 +316,7 @@ class TestHistoryDeleteNoHang:
         self, cli_runner, mock_database_with_data
     ):
         """Verify history delete command exits cleanly with --yes flag."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             with patch(
@@ -338,7 +338,7 @@ class TestHistoryDeleteNoHang:
         self, cli_runner, mock_database_not_found
     ):
         """Verify history delete exits cleanly when ID doesn't exist."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_not_found
 
             result = cli_runner.invoke(cli, ["history", "delete", "999", "--yes"])
@@ -350,7 +350,7 @@ class TestHistoryDeleteNoHang:
 
     def test_history_delete_cancellation(self, cli_runner, mock_database_with_data):
         """Verify history delete handles user cancellation gracefully."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             # Simulate user selecting 'n' for no confirmation
@@ -381,7 +381,7 @@ class TestDatabaseCloseCalled:
         self, cli_runner, mock_database_with_data, command
     ):
         """Verify database.close() is called after successful command execution."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_data
 
             # For delete, also mock audio storage
@@ -410,7 +410,7 @@ class TestDatabaseCloseCalled:
         self, cli_runner, mock_database_not_found, command
     ):
         """Verify database.close() is called even when command encounters error."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_not_found
 
             result = cli_runner.invoke(cli, command)
@@ -442,7 +442,7 @@ class TestDatabaseConnectionLeak:
         mock_db.initialize = AsyncMock()
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             commands = [
@@ -468,7 +468,7 @@ class TestDatabaseConnectionLeak:
         mock_db.initialize = AsyncMock(side_effect=Exception("Database error"))
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -498,7 +498,7 @@ class TestDatabaseCloseWithRealAsync:
 
         mock_db.close = mock_close
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -532,7 +532,7 @@ class TestDatabaseCloseWithRealAsync:
         for cmd, _ in commands:
             mock_db.close.reset_mock()
 
-            with patch("whisper_dictate.database.get_database") as mock_get_db:
+            with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
                 mock_get_db.return_value = mock_db
 
                 with patch("whisper_dictate.audio_storage.get_audio_storage"):
@@ -541,3 +541,147 @@ class TestDatabaseCloseWithRealAsync:
                 assert mock_db.close.called, (
                     f"db.close() not called for command: {cmd[0]} {cmd[1] if len(cmd) > 1 else ''}"
                 )
+
+
+class TestHistoryUpdate:
+    """Tests for history update command."""
+
+    @pytest.fixture
+    def mock_database_with_update(self):
+        """Create a mock database that supports update."""
+        mock_db = AsyncMock()
+
+        # Transcript for update
+        mock_db.get_transcription_with_recording = AsyncMock(
+            return_value={
+                "id": 1,
+                "text": "Original transcription text",
+                "timestamp": "2024-03-15 10:30:00",
+                "duration": 5.5,
+                "language": "en",
+                "model_used": "whisper-1",
+                "confidence": 0.95,
+                "file_path": "test.wav",
+                "recording_id": 1,
+            }
+        )
+
+        # Update result
+        mock_db.update_transcript = AsyncMock(return_value=True)
+
+        # Initialize and close methods
+        mock_db.initialize = AsyncMock()
+        mock_db.close = AsyncMock()
+
+        return mock_db
+
+    @pytest.fixture
+    def mock_database_not_found(self):
+        """Create a mock database that returns None for non-existent ID."""
+        mock_db = AsyncMock()
+
+        mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
+        mock_db.update_transcript = AsyncMock(return_value=False)
+        mock_db.initialize = AsyncMock()
+        mock_db.close = AsyncMock()
+
+        return mock_db
+
+    def test_history_update_success(self, cli_runner, mock_database_with_update):
+        """Verify history update command works with valid input."""
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_database_with_update
+
+            # Simulate user confirming with 'y'
+            result = cli_runner.invoke(
+                cli, ["history", "update", "1", "--text", "Updated text"], input="y\n"
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+            assert "Updated transcription #1" in result.output
+            assert mock_database_with_update.update_transcript.called
+
+    def test_history_update_cancelled(self, cli_runner, mock_database_with_update):
+        """Verify history update command handles cancellation."""
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_database_with_update
+
+            # Simulate user cancelling with 'n'
+            result = cli_runner.invoke(
+                cli, ["history", "update", "1", "--text", "Updated text"], input="n\n"
+            )
+
+            assert result.exit_code == 0
+            assert "cancelled" in result.output.lower()
+            # Verify update was NOT called
+            assert not mock_database_with_update.update_transcript.called
+
+    def test_history_update_not_found(self, cli_runner, mock_database_not_found):
+        """Verify history update handles non-existent ID."""
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_database_not_found
+
+            result = cli_runner.invoke(
+                cli, ["history", "update", "999", "--text", "Updated text"]
+            )
+
+            assert result.exit_code == 1
+            assert "not found" in result.output
+
+    def test_history_update_with_language(self, cli_runner, mock_database_with_update):
+        """Verify history update command works with language option."""
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_database_with_update
+
+            result = cli_runner.invoke(
+                cli,
+                [
+                    "history",
+                    "update",
+                    "1",
+                    "--text",
+                    "Updated text",
+                    "--language",
+                    "es",
+                ],
+                input="y\n",
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+            assert "Updated transcription #1" in result.output
+
+            # Verify update was called with language
+            mock_database_with_update.update_transcript.assert_called_with(
+                1, "Updated text", "es"
+            )
+
+    def test_history_update_requires_text(self, cli_runner):
+        """Verify history update requires --text option."""
+        from click.testing import CliRunner
+
+        cli_runner = CliRunner()
+        mock_db = AsyncMock()
+        mock_db.initialize = AsyncMock()
+        mock_db.close = AsyncMock()
+
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_db
+
+            result = cli_runner.invoke(cli, ["history", "update", "1"])
+
+            # Should fail because --text is required
+            assert result.exit_code != 0
+
+    def test_history_update_shows_comparison(
+        self, cli_runner, mock_database_with_update
+    ):
+        """Verify history update shows old vs new text comparison."""
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
+            mock_get_db.return_value = mock_database_with_update
+
+            result = cli_runner.invoke(
+                cli, ["history", "update", "1", "--text", "New text"], input="y\n"
+            )
+
+            assert "Current Text" in result.output
+            assert "New Text" in result.output

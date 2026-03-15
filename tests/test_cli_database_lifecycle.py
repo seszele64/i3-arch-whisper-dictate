@@ -197,7 +197,7 @@ class TestLogsCommandsDatabaseClose:
 
     def test_logs_list_calls_db_close(self, cli_runner, mock_database_with_logs):
         """Verify logs list command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             result = cli_runner.invoke(cli, ["logs", "list"])
@@ -211,7 +211,7 @@ class TestLogsCommandsDatabaseClose:
         self, cli_runner, mock_database_with_logs
     ):
         """Verify logs list with filter options calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             result = cli_runner.invoke(
@@ -225,7 +225,7 @@ class TestLogsCommandsDatabaseClose:
         self, cli_runner, mock_database_empty_logs
     ):
         """Verify logs list with no results calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty_logs
 
             result = cli_runner.invoke(cli, ["logs", "list"])
@@ -237,7 +237,7 @@ class TestLogsCommandsDatabaseClose:
         self, cli_runner, mock_database_with_logs, temp_db
     ):
         """Verify logs export command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             # Use a temp file for export
@@ -261,7 +261,7 @@ class TestLogsCommandsDatabaseClose:
         self, cli_runner, mock_database_with_logs
     ):
         """Verify logs export with JSON format calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
@@ -282,7 +282,7 @@ class TestLogsCommandsDatabaseClose:
 
     def test_logs_cleanup_calls_db_close(self, cli_runner, mock_database_with_logs):
         """Verify logs cleanup command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             result = cli_runner.invoke(cli, ["logs", "cleanup", "--days", "7"])
@@ -296,7 +296,7 @@ class TestLogsCommandsDatabaseClose:
         self, cli_runner, mock_database_with_logs
     ):
         """Verify logs cleanup with default days calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_logs
 
             result = cli_runner.invoke(cli, ["logs", "cleanup"])
@@ -312,7 +312,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history list command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -326,7 +326,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history list with --limit option calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "list", "--limit", "10"])
@@ -338,7 +338,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history list with --date option calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "list", "--date", "2024-03-15"])
@@ -350,7 +350,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_empty_transcriptions
     ):
         """Verify history list with no transcriptions calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -363,7 +363,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history show command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "show", "1"])
@@ -377,7 +377,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history show with --audio option calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             with patch(
@@ -396,7 +396,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_empty_transcriptions
     ):
         """Verify history show with invalid ID calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "show", "999"])
@@ -410,7 +410,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history search command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "search", "meeting"])
@@ -424,7 +424,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history search with --limit option calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             result = cli_runner.invoke(
@@ -438,7 +438,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_empty_transcriptions
     ):
         """Verify history search with no results calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty_transcriptions
 
             result = cli_runner.invoke(
@@ -453,7 +453,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history delete command calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             with patch(
@@ -475,7 +475,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_empty_transcriptions
     ):
         """Verify history delete with invalid ID calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_empty_transcriptions
 
             result = cli_runner.invoke(cli, ["history", "delete", "999", "--yes"])
@@ -489,7 +489,7 @@ class TestHistoryCommandsDatabaseClose:
         self, cli_runner, mock_database_with_transcriptions
     ):
         """Verify history delete cancellation calls database close()."""
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_with_transcriptions
 
             # Simulate user selecting 'n' for no confirmation
@@ -521,7 +521,7 @@ class TestAllCLICommandsDatabaseClose:
         """Verify all database-using commands call close()."""
         mock_db = request.getfixturevalue(mock_fixture)
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             # For delete command, also mock audio storage
@@ -599,7 +599,7 @@ class TestDatabaseCloseOnError:
         mock_db.query_logs = AsyncMock(side_effect=Exception("Database error"))
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             result = cli_runner.invoke(cli, ["logs", "list"])
@@ -615,7 +615,7 @@ class TestDatabaseCloseOnError:
         mock_db.list_transcriptions = AsyncMock(side_effect=Exception("Database error"))
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             result = cli_runner.invoke(cli, ["history", "list"])
@@ -636,7 +636,7 @@ class TestMultipleCommandsNoConnectionLeak:
         mock_db.initialize = AsyncMock()
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             # Run multiple commands consecutively
@@ -663,7 +663,7 @@ class TestMultipleCommandsNoConnectionLeak:
         mock_db.initialize = AsyncMock()
         mock_db.close = AsyncMock()
 
-        with patch("whisper_dictate.database.get_database") as mock_get_db:
+        with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
             # Run multiple commands consecutively

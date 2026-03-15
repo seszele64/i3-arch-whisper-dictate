@@ -5,16 +5,17 @@ Provides audio file storage with:
 - Date-based directory structure (YYYY/MM/DD)
 - Unique filename generation (timestamp + random suffix)
 - File save, retrieve, and cleanup operations
+- Disk space checking for safe recording
 """
 
 import logging
 import os
 import random
-import string
 import shutil
+import string
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from whisper_dictate.config import DatabaseConfig
 
@@ -22,6 +23,49 @@ logger = logging.getLogger(__name__)
 
 # Length of random suffix for unique filenames
 RANDOM_SUFFIX_LENGTH = 8
+
+# Default minimum free space threshold in MB
+DEFAULT_MIN_FREE_SPACE_MB = 100
+
+
+def check_disk_space(
+    path: Path, min_free_mb: int = DEFAULT_MIN_FREE_SPACE_MB
+) -> Tuple[bool, int]:
+    """Check available disk space on the filesystem containing the given path.
+
+    Args:
+        path: Path to check disk space for (directory or file)
+        min_free_mb: Minimum free space required in MB (default: 100MB)
+
+    Returns:
+        Tuple[bool, int]: (has_space, available_mb) - True if enough space available,
+                         and the available space in MB
+    """
+    try:
+        # Get the disk statistics for the filesystem containing the path
+        stat_result = os.statvfs(path)
+
+        # Calculate available space in bytes
+        # f_bavail is the number of free blocks available to non-root users
+        available_bytes = stat_result.f_bavail * stat_result.f_frsize
+
+        # Convert to MB
+        available_mb = available_bytes // (1024 * 1024)
+
+        has_space = available_mb >= min_free_mb
+
+        logger.debug(
+            f"Disk space check for {path}: {available_mb}MB available, "
+            f"{min_free_mb}MB required"
+        )
+
+        return has_space, available_mb
+
+    except OSError as e:
+        logger.warning(f"Failed to check disk space for {path}: {e}")
+        # Return True to allow operation to proceed if we can't check
+        # This is a safe default - we don't want to block recording due to check failure
+        return True, 0
 
 
 def _generate_random_suffix(length: int = RANDOM_SUFFIX_LENGTH) -> str:
@@ -113,6 +157,51 @@ class AudioStorage:
             Path: Full path to recordings directory
         """
         return self._recordings_path
+
+    def check_disk_space(
+        self, min_free_mb: int = DEFAULT_MIN_FREE_SPACE_MB
+    ) -> Tuple[bool, int]:
+        """Check available disk space for the recordings directory.
+
+        Args:
+            min_free_mb: Minimum free space required in MB (default: 100MB)
+
+        Returns:
+            Tuple[bool, int]: (has_space, available_mb) - True if enough space available,
+                             and the available space in MB
+        """
+        return check_disk_space(self._recordings_path, min_free_mb)
+
+    def get_disk_usage(self) -> dict:
+        """Get disk usage statistics for the recordings directory's filesystem.
+
+        Returns:
+            dict: Disk usage statistics including total, used, and free space in bytes and MB
+        """
+        try:
+            stat_result = os.statvfs(self._recordings_path)
+
+            total_bytes = stat_result.f_blocks * stat_result.f_frsize
+            used_bytes = (
+                stat_result.f_blocks - stat_result.f_bfree
+            ) * stat_result.f_frsize
+            available_bytes = stat_result.f_bavail * stat_result.f_frsize
+
+            return {
+                "total_bytes": total_bytes,
+                "total_mb": round(total_bytes / (1024 * 1024), 2),
+                "used_bytes": used_bytes,
+                "used_mb": round(used_bytes / (1024 * 1024), 2),
+                "available_bytes": available_bytes,
+                "available_mb": round(available_bytes / (1024 * 1024), 2),
+                "recordings_path": str(self._recordings_path),
+            }
+        except OSError as e:
+            logger.warning(f"Failed to get disk usage for {self._recordings_path}: {e}")
+            return {
+                "error": str(e),
+                "recordings_path": str(self._recordings_path),
+            }
 
     def get_recording_path(self, recording_id: int) -> Optional[Path]:
         """Get the absolute path for a recording by ID.
@@ -261,16 +350,40 @@ class AudioStorage:
         relative_path = dest_path.relative_to(self._recordings_path)
         return dest_path, str(relative_path)
 
-    def get_audio_path(self, relative_path: str) -> Path:
+    def get_audio_path(self, relative_path: str, verify_exists: bool = False) -> Path:
         """Resolve a relative path to absolute path in recordings directory.
+
+        Args:
+            relative_path: Relative path from recordings root
+            verify_exists: If True, raise FileNotFoundError if file doesn't exist
+
+        Returns:
+            Path: Absolute path to the audio file
+
+        Raises:
+            FileNotFoundError: If verify_exists is True and file doesn't exist
+        """
+        path = self._recordings_path / relative_path
+        if verify_exists and not path.exists():
+            raise FileNotFoundError(
+                f"Audio file not found: {path}\n"
+                "The file may have been deleted or moved outside the application."
+            )
+        return path
+
+    def verify_audio_file(self, relative_path: str) -> Path:
+        """Verify that an audio file exists and return its absolute path.
 
         Args:
             relative_path: Relative path from recordings root
 
         Returns:
             Path: Absolute path to the audio file
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist
         """
-        return self._recordings_path / relative_path
+        return self.get_audio_path(relative_path, verify_exists=True)
 
     def get_audio(self, relative_path: str) -> Optional[bytes]:
         """Read audio file contents.
@@ -417,3 +530,127 @@ def get_audio_storage(config: Optional[DatabaseConfig] = None) -> AudioStorage:
         _audio_storage = AudioStorage(config)
 
     return _audio_storage
+
+
+# ============ Orphaned File Cleanup Functions ============
+
+
+def get_orphaned_files(db) -> list[dict]:
+    """Scan for orphaned audio files not referenced in the database.
+
+    Compares files in the recordings directory against database records
+    to find audio files that exist on disk but are not in the database.
+
+    Args:
+        db: Database instance with async methods (must have list_recordings)
+
+    Returns:
+        list[dict]: List of orphaned file info with keys:
+            - path: Path to the orphaned file
+            - relative_path: Relative path from recordings root
+            - size: File size in bytes
+            - modified: Last modified timestamp
+    """
+    import asyncio
+
+    # Get audio storage to access recordings path
+    audio_storage = get_audio_storage()
+    recordings_path = audio_storage.recordings_path
+
+    if not recordings_path.exists():
+        logger.info("Recordings directory does not exist, no orphaned files")
+        return []
+
+    # Get all file paths from the filesystem
+    filesystem_files: set[str] = set()
+    orphaned_files = []
+
+    if recordings_path.exists():
+        for path in recordings_path.rglob("*"):
+            if path.is_file():
+                try:
+                    relative = str(path.relative_to(recordings_path))
+                    filesystem_files.add(relative)
+                except ValueError:
+                    logger.warning(f"Could not compute relative path for: {path}")
+
+    # Get all file paths from the database
+    db_files: set[str] = set()
+    try:
+        # Use a high limit to get all recordings
+        recordings = asyncio.run(db.list_recordings(limit=100000, offset=0))
+        for recording in recordings:
+            file_path = recording.get("file_path")
+            if file_path:
+                db_files.add(file_path)
+    except Exception as e:
+        logger.error(f"Failed to fetch recordings from database: {e}")
+        return []
+
+    # Find orphaned files (in filesystem but not in database)
+    for relative_path in filesystem_files:
+        if relative_path not in db_files:
+            full_path = recordings_path / relative_path
+            try:
+                stat = full_path.stat()
+                orphaned_files.append(
+                    {
+                        "path": full_path,
+                        "relative_path": relative_path,
+                        "size": stat.st_size,
+                        "modified": stat.st_mtime,
+                    }
+                )
+            except OSError as e:
+                logger.warning(f"Could not stat file {full_path}: {e}")
+
+    logger.info(f"Found {len(orphaned_files)} orphaned audio files")
+
+    return orphaned_files
+
+
+def cleanup_orphaned_files(db, dry_run: bool = True) -> tuple[int, int]:
+    """Clean up orphaned audio files not referenced in the database.
+
+    Args:
+        db: Database instance with async methods
+        dry_run: If True, only return what would be deleted without deleting
+
+    Returns:
+        tuple[int, int]: (deleted_count, total_size_freed)
+            - deleted_count: Number of files deleted (or would be deleted)
+            - total_size_freed: Total size in bytes freed (or would be freed)
+    """
+    orphaned_files = get_orphaned_files(db)
+
+    deleted_count = 0
+    total_size_freed = 0
+
+    for file_info in orphaned_files:
+        file_path = file_info["path"]
+        file_size = file_info["size"]
+
+        if dry_run:
+            logger.info(f"[DRY RUN] Would delete orphaned file: {file_path}")
+            deleted_count += 1
+            total_size_freed += file_size
+        else:
+            try:
+                file_path.unlink()
+                logger.info(f"Deleted orphaned file: {file_path}")
+                deleted_count += 1
+                total_size_freed += file_size
+            except OSError as e:
+                logger.error(f"Failed to delete orphaned file {file_path}: {e}")
+
+    if dry_run:
+        logger.info(
+            f"[DRY RUN] Would delete {deleted_count} orphaned files, "
+            f"freeing {total_size_freed} bytes"
+        )
+    else:
+        logger.info(
+            f"Deleted {deleted_count} orphaned files, freed {total_size_freed} bytes"
+        )
+
+    return deleted_count, total_size_freed

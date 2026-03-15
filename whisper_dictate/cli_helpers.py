@@ -6,39 +6,50 @@ from whisper_dictate.database import get_database
 from whisper_dictate.config import DatabaseConfig
 
 
+def _run_async(coro):
+    """Run a coroutine in a new event loop, handling nested loop cases."""
+    try:
+        # Try to get existing loop
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop - safe to use asyncio.run()
+        return asyncio.run(coro)
+
+    # There's a running loop - create a new one for this operation
+    new_loop = asyncio.new_event_loop()
+    try:
+        return new_loop.run_until_complete(coro)
+    finally:
+        new_loop.close()
+
+
 def with_database(f):
     """Decorator that handles database initialization and cleanup.
 
-    This decorator ensures that:
-    1. Database is initialized before the command runs
-    2. Database connection is properly closed after the command completes
-    3. Cleanup happens even if an exception occurs
-
-    Usage:
-        @cli.command()
-        @with_database
-        @click.pass_context
-        def my_command(ctx, ...):
-            db = ctx.obj['db']
-            # use db - already initialized
-            results = asyncio.run(db.query(...))
+    Works with both synchronous and asynchronous command functions.
     """
 
     @click.pass_context
     def wrapper(ctx, *args, **kwargs):
-        db = None
+        # Initialize database
+        db_config = DatabaseConfig()
+        db = get_database(db_config)
+        _run_async(db.initialize())
+
+        ctx.obj = ctx.obj or {}
+        ctx.obj["db"] = db
+
         try:
-            db_config = DatabaseConfig()
-            db = get_database(db_config)
-            asyncio.run(db.initialize())
-            ctx.obj["db"] = db
-            return ctx.invoke(f, ctx, *args, **kwargs)
-        except Exception:
-            # Re-raise to let Click handle error display
-            raise
+            # Invoke the command
+            result = ctx.invoke(f, ctx, *args, **kwargs)
+
+            # Handle async command functions - await the coroutine
+            if asyncio.iscoroutine(result):
+                result = _run_async(result)
+            return result
         finally:
-            if db:
-                asyncio.run(db.close())
+            # Close database
+            _run_async(db.close())
 
     # Preserve function metadata
     wrapper.__name__ = f.__name__

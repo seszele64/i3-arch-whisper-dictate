@@ -21,7 +21,7 @@ from whisper_dictate.config import DatabaseConfig
 logger = logging.getLogger(__name__)
 
 # Current schema version
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 class Database:
@@ -314,6 +314,7 @@ class Database:
                     confidence REAL,
                     timestamp TEXT NOT NULL DEFAULT (datetime('now')),
                     created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
                     FOREIGN KEY (recording_id) REFERENCES recordings(id) ON DELETE CASCADE
                 )
             """)
@@ -385,10 +386,25 @@ class Database:
         """
         logger.info(f"Running migration version {version}")
 
-        # Placeholder for future migrations
-        # Example:
-        # if version == 2:
-        #     await self._migration_002()
+        if version == 2:
+            # Migration 2: Add updated_at column to transcripts table
+            async with self.connection() as conn:
+                # Check if column exists
+                cursor = await conn.execute("PRAGMA table_info(transcripts)")
+                columns = await cursor.fetchall()
+                column_names = {col[1] for col in columns}
+
+                if "updated_at" not in column_names:
+                    # SQLite doesn't support adding columns with non-constant default values
+                    # So we add it with a constant default and then update
+                    await conn.execute(
+                        "ALTER TABLE transcripts ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''"
+                    )
+                    # Now update existing rows to have proper timestamp
+                    await conn.execute(
+                        "UPDATE transcripts SET updated_at = datetime('now') WHERE updated_at = ''"
+                    )
+                    logger.info("Added updated_at column to transcripts table")
 
         logger.info(f"Migration version {version} completed")
 
@@ -448,29 +464,35 @@ class Database:
                     "sample_rate",
                     "channels",
                     "created_at",
+                    "updated_at",
                 ],
             )
         return None
 
     async def get_recording_with_audio_path(
-        self, recording_id: int
+        self, recording_id: int, verify_exists: bool = False
     ) -> Optional[dict[str, Any]]:
         """Get a recording by ID with resolved absolute audio path.
 
         Args:
             recording_id: Recording ID
+            verify_exists: If True, verify the audio file exists on filesystem
 
         Returns:
             Optional[dict]: Recording data with absolute_path field, or None
+
+        Raises:
+            FileNotFoundError: If verify_exists is True and file doesn't exist
         """
         from whisper_dictate.audio_storage import get_audio_storage
 
         recording = await self.get_recording(recording_id)
         if recording:
             audio_storage = get_audio_storage(self._config)
-            recording["absolute_path"] = str(
-                audio_storage.get_audio_path(recording["file_path"])
+            absolute_path = audio_storage.get_audio_path(
+                recording["file_path"], verify_exists=verify_exists
             )
+            recording["absolute_path"] = str(absolute_path)
         return recording
 
     async def list_recordings(
@@ -505,6 +527,7 @@ class Database:
                     "sample_rate",
                     "channels",
                     "created_at",
+                    "updated_at",
                 ],
             )
             for row in rows
@@ -581,6 +604,8 @@ class Database:
                     "confidence",
                     "timestamp",
                     "created_at",
+                    "updated_at",
+                    "updated_at",
                 ],
             )
         return None
@@ -611,6 +636,7 @@ class Database:
                     "confidence",
                     "timestamp",
                     "created_at",
+                    "updated_at",
                 ],
             )
         return None
@@ -651,6 +677,7 @@ class Database:
                     "confidence",
                     "timestamp",
                     "created_at",
+                    "updated_at",
                     "file_path",
                     "recording_timestamp",
                     "duration",
@@ -707,6 +734,7 @@ class Database:
                     "confidence",
                     "timestamp",
                     "created_at",
+                    "updated_at",
                     "file_path",
                     "recording_timestamp",
                     "duration",
@@ -747,12 +775,48 @@ class Database:
                     "confidence",
                     "timestamp",
                     "created_at",
+                    "updated_at",
                     "file_path",
                     "recording_timestamp",
                     "duration",
                 ],
             )
         return None
+
+    async def update_transcript(
+        self,
+        transcript_id: int,
+        text: str,
+        language: Optional[str] = None,
+    ) -> bool:
+        """Update a transcript's text and optionally language.
+
+        Args:
+            transcript_id: ID of the transcript to update
+            text: New transcript text
+            language: Optional new language code
+
+        Returns:
+            bool: True if transcript was found and updated, False otherwise
+        """
+        # Build update query dynamically based on provided parameters
+        if language is not None:
+            query = """
+                UPDATE transcripts
+                SET text = ?, language = ?, updated_at = datetime('now')
+                WHERE id = ?
+            """
+            params = (text, language, transcript_id)
+        else:
+            query = """
+                UPDATE transcripts
+                SET text = ?, updated_at = datetime('now')
+                WHERE id = ?
+            """
+            params = (text, transcript_id)
+
+        result = await self.execute(query, params)
+        return result.rowcount > 0
 
     # ============ Log Operations ============
 
