@@ -1,5 +1,7 @@
 .coverage
+.env
 .opencode/
+.vscode/
 =0.*
 
 # Python
