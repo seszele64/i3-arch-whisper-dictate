@@ -1026,3 +1026,17 @@ async def initialize_database(config: Optional[DatabaseConfig] = None) -> Databa
     db = get_database(config)
     await db.initialize()
     return db
+
+
+async def close_database() -> None:
+    """Close the global database connection.
+
+    This should be called during application shutdown to ensure
+    all database connections are properly closed.
+    """
+    global _database
+
+    if _database is not None:
+        await _database.close()
+        _database = None
+        logger.debug("Global database connection closed")

@@ -31,6 +31,9 @@ class TestTranscribeAudio:
         mock_db.execute = AsyncMock()
         mock_db.create_log = AsyncMock(return_value=1)
         mock_db.connection = AsyncMock()
+        mock_db.close = AsyncMock()
+        mock_db.set_state = AsyncMock()
+        mock_db.delete_state = AsyncMock()
 
         # Mock audio storage
         mock_audio_storage = MagicMock()

@@ -254,6 +254,7 @@ class TestDictationService:
             "test.wav",
         )
         mock_audio_storage.recordings_path = Path("/recordings")
+        mock_audio_storage.check_disk_space.return_value = (True, 500)
 
         # Create service after setting up mocks
         with (
