@@ -1,5 +1,8 @@
 # Whisper Dictate - Global Key Binding
 
+[![CI](https://github.com/owner/repo/actions/workflows/ci.yml/badge.svg)](https://github.com/owner/repo/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)
+
 A Python CLI for voice dictation using OpenAI Whisper API with global key binding support on Arch Linux.
 
 ## Features
@@ -494,6 +497,70 @@ whisper-dictate migrate --status
 # Re-run migration if needed
 whisper-dictate migrate --force
 ```
+
+---
+
+## CI/CD and Testing
+
+This project uses GitHub Actions for continuous integration and testing.
+
+### CI Workflow
+
+The CI workflow runs on every push and pull request:
+
+- **Linting**: Code quality checks with Ruff
+- **Testing**: Unit tests run on Python 3.11, 3.12, and 3.13
+- **Coverage**: Minimum 80% code coverage requirement
+- **Artifacts**: JUnit XML test results and HTML coverage reports
+
+**View CI status**: Check the badge at the top of this README or visit the [Actions tab](../../actions).
+
+### Integration Tests
+
+Integration tests run weekly (Sundays at 00:00 UTC) and test against the real OpenAI API on multiple Linux distributions:
+
+- Ubuntu (latest)
+- Arch Linux (rolling)
+- Debian 12
+- Fedora (latest)
+
+**Trigger manually**: Go to Actions → Integration Tests → Run workflow
+
+### Setting up OPENAI_API_KEY for Integration Tests
+
+To enable integration tests in your fork:
+
+1. Go to your repository on GitHub
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `OPENAI_API_KEY`
+5. Value: Your OpenAI API key
+6. Click **Add secret**
+
+The API key will be masked in all logs and outputs.
+
+### Running Tests Locally
+
+```bash
+# Install test dependencies
+pip install -e ".[dev]"
+
+# Run unit tests only (skips integration tests)
+pytest -m "not integration" -v
+
+# Run all tests including integration (requires OPENAI_API_KEY)
+export OPENAI_API_KEY="your-api-key"
+pytest -v
+
+# Run with coverage
+pytest --cov=whisper_dictate --cov-report=html -v
+```
+
+### Test Structure
+
+- **Unit tests**: Located in `tests/test_*.py`, use mocked dependencies
+- **Integration tests**: Located in `tests/test_integration.py`, require real API
+- **Fixtures**: Test audio files in `tests/fixtures/`
 
 ---
 
