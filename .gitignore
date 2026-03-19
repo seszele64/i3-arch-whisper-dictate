@@ -2,7 +2,6 @@
 .env
 .opencode/
 .vscode/
-=0.*
 
 # Python
 *.egg-info/

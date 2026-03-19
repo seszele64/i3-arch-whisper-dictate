@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import sys
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -297,6 +298,22 @@ async def export_logs(
     db = ctx.obj["db"]
 
     try:
+        # Path validation - check if export is outside current directory
+        export_path = Path(filename).resolve()
+        cwd = Path.cwd().resolve()
+
+        try:
+            export_path.relative_to(cwd)
+        except ValueError:
+            # Path is outside current directory tree
+            if not click.confirm(
+                f"Warning: Writing to path outside current directory:\n"
+                f"  {export_path}\n"
+                f"Continue?"
+            ):
+                click.echo("Export cancelled.")
+                return
+
         # Get all logs (no limit for export)
         logs = await db.query_logs(
             level=level,
@@ -312,10 +329,10 @@ async def export_logs(
 
         # Write to file
         if format == "json":
-            with open(filename, "w") as f:
+            with open(export_path, "w") as f:
                 json.dump(logs, f, indent=2)
         else:
-            with open(filename, "w") as f:
+            with open(export_path, "w") as f:
                 for log in logs:
                     timestamp = log.get("timestamp", "N/A")
                     lvl = log.get("level", "N/A")
@@ -323,7 +340,7 @@ async def export_logs(
                     msg = log.get("message", "")
                     f.write(f"{timestamp} | {lvl:8} | {src:30} | {msg}\n")
 
-        click.echo(f"Exported {len(logs)} log entries to {filename}")
+        click.echo(f"Exported {len(logs)} log entries to {export_path}")
 
     except Exception as e:
         click.echo(f"Error exporting logs: {e}", err=True)
