@@ -1,0 +1,116 @@
+## 1. Database Infrastructure
+
+- [x] 1.1 Create database module with aiosqlite integration
+- [x] 1.2 Implement database schema (recordings, transcripts, logs, state, schema_versions tables)
+- [x] 1.3 Add database initialization logic with version tracking
+- [x] 1.4 Implement schema migration system
+- [x] 1.5 Add database integrity check on startup
+
+## 2. Audio Storage
+
+- [x] 2.1 Create audio storage directory management module
+- [x] 2.2 Implement date-based directory structure creation
+- [x] 2.3 Add audio file save functionality after transcription
+- [x] 2.4 Implement unique filename generation with timestamp
+- [x] 2.5 Add audio file retrieval by recording ID
+- [x] 2.6 Implement audio file cleanup on transcript deletion
+
+## 3. Database Logging
+
+- [x] 3.1 Create database-backed logging handler
+- [x] 3.2 Integrate dual logging (file + database)
+- [x] 3.3 Implement log query functionality
+- [x] 3.4 Add log filtering (by level, source, date range)
+- [x] 3.5 Implement log retention cleanup
+
+## 4. Transcription History CLI
+
+- [x] 4.1 Create `history` command group
+- [x] 4.2 Implement `history list` with pagination
+- [x] 4.3 Implement `history show <id>` for full details
+- [x] 4.4 Add `history search <query>` functionality
+- [x] 4.5 Implement `history delete <id>` with confirmation
+
+## 5. Logs CLI
+
+- [x] 5.1 Create `logs` command group
+- [x] 5.2 Implement `logs list` with filtering options (--level, --source, --from, --to, --limit)
+- [x] 5.3 Add `logs export <filename>` functionality
+
+## 6. State Migration
+
+- [x] 6.1 Create migration detection for existing state files
+- [x] 6.2 Implement config migration from JSON to database
+- [x] 6.3 Add state migration (notification IDs, etc.)
+- [x] 6.4 Implement backup of original files before migration
+- [x] 6.5 Add migration status tracking to prevent re-running
+- [x] 6.6 Implement rollback on migration failure
+
+## 7. Integration and Testing
+
+- [x] 7.1 Integrate persistence layer with DictationService
+- [x] 7.2 Update audio recorder to save files instead of delete
+- [x] 7.3 Add new dependencies to requirements.txt
+- [x] 7.4 Run tests and fix any issues
+- [x] 7.5 Verify all CLI commands work correctly
+
+## 8. Bug Fixes
+
+- [x] 8.1 Fix transcript not being saved to database
+  - [x] 8.1.1 Identify root cause: recording_id deleted before transcription
+  - [x] 8.1.2 Modify stop_background_recording() to return recording_id before deletion
+  - [x] 8.1.3 Update transcribe_audio() to accept and use recording_id parameter
+  - [x] 8.1.4 Update main flow to pass recording_id from stop to transcribe
+  - [x] 8.1.5 Verify transcripts are now saved correctly
+  - [x] 8.1.6 Add test case for transcript saving
+
+- [x] 8.2 Fix recording duration showing as "N/A" in history
+  - [x] 8.2.1 Identify root cause: duration not calculated after recording stops
+- [x] 8.2.2 Add duration calculation using soundfile.info() in transcribe_audio()
+- [x] 8.2.3 Update recording entry with actual duration from audio file
+  - [x] 8.2.4 Verify duration displays correctly in history list
+  - [x] 8.2.5 Add test case for duration calculation
+
+- [x] 8.3 Fix history CLI commands hanging on exit
+  - [x] 8.3.1 Identify root cause: database connection not closed after commands
+  - [x] 8.3.2 Add asyncio.run(db.close()) to history list command
+  - [x] 8.3.3 Add asyncio.run(db.close()) to history show command
+  - [x] 8.3.4 Add asyncio.run(db.close()) to history search command
+  - [x] 8.3.5 Add asyncio.run(db.close()) to history delete command
+  - [x] 8.3.6 Verify all history commands exit cleanly without Ctrl+C
+
+## 9. Systematic Database Lifecycle Pattern
+
+Priority: HIGH - This is a systemic bug affecting multiple commands
+
+- [x] 9.1 Create `@with_database` decorator (RECOMMENDED)
+  - [x] 9.1.1 Implement decorator in `cli_helpers.py`
+  - [x] 9.1.2 Add proper error handling
+  - [x] 9.1.3 Add tests for decorator behavior
+
+- [x] 9.2 Fix logs CLI commands
+  - [x] 9.2.1 Fix `logs list` - add initialize and close
+  - [x] 9.2.2 Fix `logs export` - add initialize and close
+  - [x] 9.2.3 Fix `logs cleanup` - add initialize and close
+  - [x] 9.2.4 Verify all logs commands exit cleanly
+
+- [x] 9.3 Fix migrate command
+  - [x] 9.3.1 Add database cleanup to migrate command
+  - [x] 9.3.2 Verify migrate exits cleanly
+
+- [x] 9.4 Fix toggle_dictate.py
+  - [x] 9.4.1 Add database cleanup after operations
+  - [x] 9.4.2 Verify toggle_dictate exits cleanly
+
+- [x] 9.5 Fix dictation.py
+  - [x] 9.5.1 Add database cleanup after dictation
+  - [x] 9.5.2 Verify dictation service exits cleanly
+
+- [x] 9.6 Update OpenSpec specs
+  - [x] 9.6.1 Add database lifecycle requirements to transcript-history spec
+  - [x] 9.6.2 Add database lifecycle requirements to structured-logging spec
+  - [x] 9.6.3 Add database lifecycle requirements to state-migration spec
+
+- [x] 9.7 Add test coverage
+  - [x] 9.7.1 Add test that verifies all CLI commands close database
+  - [x] 9.7.2 Add integration test for CLI database cleanup

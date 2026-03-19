@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock, PropertyMock, AsyncMock
 
 from whisper_dictate.dictation import DictationService
 
@@ -224,3 +224,79 @@ class TestDictationService:
             assert info["config"]["audio_sample_rate"] == 16000
             assert info["config"]["copy_to_clipboard"] is True
             assert info["config"]["openai_model"] == "whisper-1"
+
+    def test_transcript_saved_with_recording_id(
+        self, mock_config, mock_transcription_result
+    ):
+        """
+        Test that transcripts are saved with correct recording_id.
+
+        This is a regression test for the bug where recording_id was deleted
+        from database state before transcription, causing transcripts to not
+        be saved.
+        """
+        # Create mock database with properly configured async methods
+        mock_db = MagicMock()
+        mock_db.path = Path("/tmp/test.db")
+        mock_db.initialize = AsyncMock()  # AsyncMock for async initialize
+        mock_db.create_recording = AsyncMock(return_value=42)  # recording_id = 42
+        mock_db.create_transcript = AsyncMock(return_value=1)
+        mock_db.execute = AsyncMock()
+        mock_db.create_log = AsyncMock(return_value=1)
+
+        # Need to also set up connection as a context manager
+        mock_db.connection = AsyncMock()
+
+        # Mock audio storage
+        mock_audio_storage = MagicMock()
+        mock_audio_storage.save_audio.return_value = (
+            Path("/saved/test.wav"),
+            "test.wav",
+        )
+        mock_audio_storage.recordings_path = Path("/recordings")
+        mock_audio_storage.check_disk_space.return_value = (True, 500)
+
+        # Create service after setting up mocks
+        with (
+            patch("whisper_dictate.dictation.get_database", return_value=mock_db),
+            patch(
+                "whisper_dictate.dictation.get_audio_storage",
+                return_value=mock_audio_storage,
+            ),
+        ):
+            service = DictationService(mock_config)
+
+            with (
+                patch.object(service.audio_recorder, "record_to_file") as mock_record,
+                patch.object(
+                    service.transcriber, "transcribe_audio"
+                ) as mock_transcribe,
+                patch.object(service.clipboard, "copy_to_clipboard") as mock_copy,
+            ):
+                # Setup mocks
+                mock_record.return_value = Path("/tmp/test.wav")
+                mock_transcribe.return_value = mock_transcription_result
+                mock_copy.return_value = True
+
+                # Execute dictation workflow
+                result = service.dictate()
+
+                # Verify result
+                assert result is not None
+                assert result.text == "This is a test transcription."
+
+                # Verify create_recording was called
+                mock_db.create_recording.assert_called_once()
+
+                # Verify create_transcript was called with the correct recording_id
+                mock_db.create_transcript.assert_called_once_with(
+                    recording_id=42,
+                    text="This is a test transcription.",
+                    language="en",
+                    model_used="whisper-1",
+                    confidence=None,
+                )
+
+                # Verify the transcript is linked to the recording via recording_id
+                call_args = mock_db.create_transcript.call_args
+                assert call_args.kwargs["recording_id"] == 42

@@ -1,6 +1,8 @@
 """Test configuration and fixtures for whisper-dictate."""
 
+import atexit
 import os
+import sys
 import tempfile
 from pathlib import Path
 from typing import Generator
@@ -9,16 +11,91 @@ from unittest.mock import Mock, patch
 
 from whisper_dictate.config import AppConfig, AudioConfig, OpenAIConfig
 from whisper_dictate.transcription import TranscriptionResult
-from whisper_dictate.notifications import PersistentNotification
+
+
+# Session-scoped fixture to patch sounddevice/soundfile before any imports
+# This must run BEFORE any other fixtures to prevent the real modules from loading
+@pytest.fixture(scope="session", autouse=True)
+def patch_audio_modules():
+    """Patch sounddevice and soundfile modules in sys.modules before any imports.
+
+    This prevents the real audio libraries from being loaded at module import time,
+    which can cause hangs when no audio device is available.
+    """
+    # Create mock modules
+    mock_sd = Mock()
+    mock_sf = Mock()
+
+    # Configure mock sounddevice
+    mock_sd.rec = Mock()
+    mock_sd.wait = Mock(return_value=None)
+    mock_sd.query_devices = Mock(
+        return_value=[
+            {"name": "default", "max_input_channels": 2},
+            {"name": "pulse", "max_input_channels": 2},
+        ]
+    )
+    mock_sd.PortAudioError = Exception
+    mock_sd.stop = Mock()
+
+    # Configure mock soundfile
+    mock_sf.write = Mock()
+
+    # Store original modules if they exist
+    original_sd = sys.modules.get("sounddevice")
+    original_sf = sys.modules.get("soundfile")
+
+    # Patch sys.modules
+    sys.modules["sounddevice"] = mock_sd
+    sys.modules["soundfile"] = mock_sf
+
+    yield
+
+    # Restore original modules
+    if original_sd is not None:
+        sys.modules["sounddevice"] = original_sd
+    else:
+        sys.modules.pop("sounddevice", None)
+
+    if original_sf is not None:
+        sys.modules["soundfile"] = original_sf
+    else:
+        sys.modules.pop("soundfile", None)
+
+
+# Ensure sounddevice cleanup on exit
+def _cleanup_sounddevice():
+    try:
+        import sounddevice as sd
+
+        sd.stop()
+    except Exception:
+        pass
+
+
+atexit.register(_cleanup_sounddevice)
 
 
 @pytest.fixture(autouse=True)
 def reset_persistent_notification_state():
     """Reset PersistentNotification class variables before each test."""
-    PersistentNotification._last_operation_time = 0.0
-    with patch("whisper_dictate.notifications.is_dunst_running", return_value=True):
-        yield
-    PersistentNotification._last_operation_time = 0.0
+    import whisper_dictate.notifications as notifications_module
+    from unittest.mock import patch
+
+    # Store original
+    original_time = notifications_module.PersistentNotification._last_operation_time
+
+    # Apply patch with explicit control
+    patcher = patch.object(notifications_module, "is_dunst_running", return_value=True)
+    patcher.start()
+
+    notifications_module.PersistentNotification._last_operation_time = 0.0
+
+    yield
+
+    # Explicit cleanup
+    patcher.stop()
+    notifications_module.PersistentNotification._last_operation_time = original_time
 
 
 @pytest.fixture
@@ -131,3 +208,85 @@ def temp_env_vars() -> Generator[None, None, None]:
     # Restore original environment
     os.environ.clear()
     os.environ.update(original_env)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_sounddevice():
+    """Ensure sounddevice/PortAudio threads are cleaned up after all tests."""
+    yield
+    # Force cleanup of sounddevice resources
+    try:
+        import sounddevice as sd
+
+        sd.stop()
+    except Exception:
+        pass
+
+    # Give threads time to clean up
+    import time
+
+    time.sleep(0.1)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_aiosqlite():
+    """Ensure all aiosqlite connections are closed after tests.
+
+    This fixture prevents pytest from hanging due to aiosqlite's background
+    worker thread that blocks on queue.get() if close() is never called.
+    This commonly happens when tests mock the database with AsyncMock.
+    """
+    yield
+
+    # Force cleanup of any aiosqlite connections
+    try:
+        import asyncio
+
+        # Try to run any pending async cleanup
+        try:
+            loop = asyncio.get_running_loop()
+            # Schedule a small task to let pending async operations complete
+            try:
+                loop.run_until_complete(asyncio.sleep(0.05))
+            except RuntimeError:
+                # Loop already running or closed, ignore
+                pass
+        except RuntimeError:
+            # No running loop, try to get or create one
+            try:
+                loop = asyncio.get_event_loop()
+                if not loop.is_closed():
+                    loop.run_until_complete(asyncio.sleep(0.05))
+            except RuntimeError:
+                # No event loop available, skip async cleanup
+                pass
+    except ImportError:
+        pass
+
+    # Give threads time to exit
+    import time
+
+    time.sleep(0.2)
+
+    # Also try to close any global database singleton that might have been created
+    try:
+        from whisper_dictate import database as db_module
+
+        # Check if there's a global database instance
+        if hasattr(db_module, "_database") and db_module._database is not None:
+            # Try to close it if it's not already closed
+            try:
+                import asyncio
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(db_module._database.close())
+                finally:
+                    loop.close()
+            except Exception:
+                # If we can't close it gracefully, just reset the reference
+                pass
+            db_module._database = None
+    except ImportError:
+        pass
