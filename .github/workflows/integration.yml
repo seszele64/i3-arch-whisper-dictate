@@ -1,0 +1,214 @@
+name: Integration Tests
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Sunday at 00:00 UTC
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: 'Python version to test'
+        required: false
+        default: '3.11'
+        type: choice
+        options:
+          - '3.11'
+          - '3.12'
+          - '3.13'
+
+jobs:
+  test-ubuntu:
+    name: Test on Ubuntu
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event.inputs.python_version || '3.11' }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ github.event.inputs.python_version || '3.11' }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev libportaudio2 pulseaudio libasound2
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-timeout
+
+      - name: Check OpenAI API Key
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ OPENAI_API_KEY is not set. Integration tests will be skipped."
+            echo "SKIP_TESTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ OPENAI_API_KEY is configured"
+            echo "SKIP_TESTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run integration tests
+        if: env.SKIP_TESTS == 'false'
+        run: |
+          pytest -m integration -v --timeout=60 --reruns 3 --reruns-delay 5
+
+      - name: Skip message
+        if: env.SKIP_TESTS == 'true'
+        run: |
+          echo "⏭️ Skipping integration tests - OPENAI_API_KEY not available"
+
+  test-arch:
+    name: Test on Arch Linux
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    container:
+      image: archlinux:latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Install system dependencies
+        run: |
+          pacman -Sy --noconfirm
+          pacman -S --noconfirm git base-devel portaudio pulseaudio alsa-lib
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python and pip
+        run: |
+          pacman -S --noconfirm python python-pip
+          python --version
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-timeout
+
+      - name: Check OpenAI API Key
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ OPENAI_API_KEY is not set. Integration tests will be skipped."
+            echo "SKIP_TESTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ OPENAI_API_KEY is configured"
+            echo "SKIP_TESTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run integration tests
+        if: env.SKIP_TESTS == 'false'
+        run: |
+          pytest -m integration -v --timeout=60 --reruns 3 --reruns-delay 5
+
+      - name: Skip message
+        if: env.SKIP_TESTS == 'true'
+        run: |
+          echo "⏭️ Skipping integration tests - OPENAI_API_KEY not available"
+
+  test-debian:
+    name: Test on Debian
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    container:
+      image: debian:12
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y git build-essential portaudio19-dev pulseaudio libasound2 libportaudio2
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python and pip
+        run: |
+          apt-get install -y python3 python3-pip python3-venv
+          python3 --version
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -e .
+          pip3 install pytest pytest-timeout
+
+      - name: Check OpenAI API Key
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ OPENAI_API_KEY is not set. Integration tests will be skipped."
+            echo "SKIP_TESTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ OPENAI_API_KEY is configured"
+            echo "SKIP_TESTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run integration tests
+        if: env.SKIP_TESTS == 'false'
+        run: |
+          pytest -m integration -v --timeout=60 --reruns 3 --reruns-delay 5
+
+      - name: Skip message
+        if: env.SKIP_TESTS == 'true'
+        run: |
+          echo "⏭️ Skipping integration tests - OPENAI_API_KEY not available"
+
+  test-fedora:
+    name: Test on Fedora
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    container:
+      image: fedora:latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Install system dependencies
+        run: |
+          dnf install -y git gcc portaudio-devel pulseaudio alsa-lib-devel
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python and pip
+        run: |
+          dnf install -y python3 python3-pip
+          python3 --version
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install -e .
+          pip3 install pytest pytest-timeout
+
+      - name: Check OpenAI API Key
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠️ OPENAI_API_KEY is not set. Integration tests will be skipped."
+            echo "SKIP_TESTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ OPENAI_API_KEY is configured"
+            echo "SKIP_TESTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run integration tests
+        if: env.SKIP_TESTS == 'false'
+        run: |
+          pytest -m integration -v --timeout=60 --reruns 3 --reruns-delay 5
+
+      - name: Skip message
+        if: env.SKIP_TESTS == 'true'
+        run: |
+          echo "⏭️ Skipping integration tests - OPENAI_API_KEY not available"
