@@ -39,6 +39,6 @@
 
 ## 7. Testing
 
-- [ ] 7.1 Test default configuration values (mp3_enabled=True, mp3_bitrate=128k, keep_wav=False)
-- [ ] 7.2 Verify file size reduction of 80-90% when converting WAV to MP3 at 128k
-- [ ] 7.3 Verify transcription quality equivalence between WAV and MP3 at 32-64k bitrate
+- [x] 7.1 Test default configuration values (mp3_enabled=True, mp3_bitrate=128k, keep_wav=False)
+- [x] 7.2 Verify file size reduction of 80-90% when converting WAV to MP3 at 128k
+- [x] 7.3 Verify transcription quality equivalence between WAV and MP3 at 32-64k bitrate
