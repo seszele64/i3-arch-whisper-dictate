@@ -126,6 +126,47 @@ def mock_config() -> AppConfig:
             channels=1,
             duration=1.0,  # Short duration for tests
             device=None,
+            mp3_enabled=False,  # Default to disabled for backward compatibility
+            mp3_bitrate="128k",
+            keep_wav=False,
+        ),
+        openai=OpenAIConfig(api_key="test-api-key", model="whisper-1", timeout=10.0),
+        log_level="DEBUG",
+        copy_to_clipboard=True,
+    )
+
+
+@pytest.fixture
+def mock_config_mp3_enabled() -> AppConfig:
+    """Create a mock configuration with MP3 enabled for testing."""
+    return AppConfig(
+        audio=AudioConfig(
+            sample_rate=16000,
+            channels=1,
+            duration=1.0,
+            device=None,
+            mp3_enabled=True,
+            mp3_bitrate="128k",
+            keep_wav=False,
+        ),
+        openai=OpenAIConfig(api_key="test-api-key", model="whisper-1", timeout=10.0),
+        log_level="DEBUG",
+        copy_to_clipboard=True,
+    )
+
+
+@pytest.fixture
+def mock_config_mp3_keep_wav() -> AppConfig:
+    """Create a mock configuration with MP3 enabled and keep_wav=True."""
+    return AppConfig(
+        audio=AudioConfig(
+            sample_rate=16000,
+            channels=1,
+            duration=1.0,
+            device=None,
+            mp3_enabled=True,
+            mp3_bitrate="128k",
+            keep_wav=True,
         ),
         openai=OpenAIConfig(api_key="test-api-key", model="whisper-1", timeout=10.0),
         log_level="DEBUG",

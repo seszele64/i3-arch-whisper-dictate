@@ -20,11 +20,11 @@
 
 ## 4. Transcription Integration
 
-- [ ] 4.1 Modify WhisperTranscriber.transcribe_audio() to handle MP3 files
-- [ ] 4.2 Update dictation.py to convert WAV to MP3 before transcription
-- [ ] 4.3 Implement conditional conversion based on mp3_enabled config
-- [ ] 4.4 Handle file cleanup based on keep_wav config
-- [ ] 4.5 Add integration tests for MP3 transcription flow
+- [x] 4.1 Modify WhisperTranscriber.transcribe_audio() to handle MP3 files
+- [x] 4.2 Update dictation.py to convert WAV to MP3 before transcription
+- [x] 4.3 Implement conditional conversion based on mp3_enabled config
+- [x] 4.4 Handle file cleanup based on keep_wav config
+- [x] 4.5 Add integration tests for MP3 transcription flow
 
 ## 5. Database Schema Update
 
