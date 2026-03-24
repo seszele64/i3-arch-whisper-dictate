@@ -52,7 +52,7 @@ class TestWithDatabaseInitializes:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(test_command)
+            runner.invoke(test_command)
 
             # Verify initialize was called
             assert mock_database.initialize.called, (
@@ -94,7 +94,7 @@ class TestWithDatabaseCloses:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(test_command)
+            runner.invoke(test_command)
 
             # Verify close was called
             assert mock_database.close.called, (
@@ -114,7 +114,7 @@ class TestWithDatabaseCloses:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(test_command)
+            runner.invoke(test_command)
 
             # Verify close was called even though exception occurred
             assert mock_database.close.called, (
@@ -135,7 +135,7 @@ class TestWithDatabaseCloses:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(test_command)
+            runner.invoke(test_command)
 
             # Verify close was called even on Abort
             assert mock_database.close.called, (
@@ -170,7 +170,7 @@ class TestWithDatabaseContext:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(parent_group, ["test"])
+            runner.invoke(parent_group, ["test"])
 
             # Verify the database was stored in context
             assert len(stored_db) == 1, "Command was not executed"
@@ -194,7 +194,7 @@ class TestWithDatabaseContext:
             mock_get_db.return_value = mock_database
 
             runner = CliRunner()
-            result = runner.invoke(test_command)
+            runner.invoke(test_command)
 
             # Ensure initialize happened before command
             assert mock_database.initialize.call_count == 1

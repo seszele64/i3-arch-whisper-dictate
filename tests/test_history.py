@@ -387,7 +387,7 @@ class TestDatabaseCloseCalled:
                 with patch("whisper_dictate.audio_storage.get_audio_storage"):
                     pass
 
-            result = cli_runner.invoke(cli, command)
+            cli_runner.invoke(cli, command)
 
             # Command should complete (may have error for invalid IDs)
             # The key assertion is that close was called
@@ -411,7 +411,7 @@ class TestDatabaseCloseCalled:
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_database_not_found
 
-            result = cli_runner.invoke(cli, command)
+            cli_runner.invoke(cli, command)
 
             # Even with errors, close should be called
             assert mock_database_not_found.close.called, (
@@ -453,7 +453,7 @@ class TestDatabaseConnectionLeak:
                 # Reset the mock for each iteration
                 mock_db.close.reset_mock()
 
-                result = cli_runner.invoke(cli, cmd)
+                cli_runner.invoke(cli, cmd)
 
                 # Each command should close the connection
                 assert mock_db.close.call_count >= 1, (
@@ -499,7 +499,7 @@ class TestDatabaseCloseWithRealAsync:
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
 
-            result = cli_runner.invoke(cli, ["history", "list"])
+            cli_runner.invoke(cli, ["history", "list"])
 
             # The fix uses asyncio.run(db.close()) which should complete
             assert len(close_called) >= 1 or mock_db.close.called
@@ -534,7 +534,7 @@ class TestDatabaseCloseWithRealAsync:
                 mock_get_db.return_value = mock_db
 
                 with patch("whisper_dictate.audio_storage.get_audio_storage"):
-                    result = cli_runner.invoke(cli, cmd)
+                    cli_runner.invoke(cli, cmd)
 
                 assert mock_db.close.called, (
                     f"db.close() not called for command: {cmd[0]} {cmd[1] if len(cmd) > 1 else ''}"

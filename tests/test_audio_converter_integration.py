@@ -146,8 +146,6 @@ class TestFileSizeReductionIntegration:
             audio.export(wav_tmp.name, format="wav")
             wav_path = Path(wav_tmp.name)
 
-        mp3_path = wav_path.with_suffix(".mp3")
-
         try:
             # Convert to MP3 at 64k
             converter = AudioConverter(bitrate="64k", keep_wav=True)

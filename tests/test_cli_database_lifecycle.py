@@ -534,14 +534,14 @@ class TestAllCLICommandsDatabaseClose:
                     export_file = f.name
                 command[-1] = export_file  # Replace filename with temp
                 try:
-                    result = cli_runner.invoke(cli, command)
+                    cli_runner.invoke(cli, command)
                 finally:
                     try:
                         os.unlink(export_file)
                     except OSError:
                         pass
             else:
-                result = cli_runner.invoke(cli, command)
+                cli_runner.invoke(cli, command)
 
             # Verify close was called
             assert mock_db.close.called, (
@@ -647,7 +647,7 @@ class TestMultipleCommandsNoConnectionLeak:
 
             for cmd in commands:
                 mock_db.close.reset_mock()
-                result = cli_runner.invoke(cli, cmd)
+                cli_runner.invoke(cli, cmd)
                 assert mock_db.close.call_count >= 1, (
                     f"Connection not closed for: {' '.join(cmd)}"
                 )
@@ -674,7 +674,7 @@ class TestMultipleCommandsNoConnectionLeak:
 
             for cmd in commands:
                 mock_db.close.reset_mock()
-                result = cli_runner.invoke(cli, cmd)
+                cli_runner.invoke(cli, cmd)
                 assert mock_db.close.call_count >= 1, (
                     f"Connection not closed for: {' '.join(cmd)}"
                 )
