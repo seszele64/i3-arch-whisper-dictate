@@ -33,9 +33,9 @@
 
 ## 6. Documentation
 
-- [ ] 6.1 Document new MP3 configuration options in docstrings
-- [ ] 6.2 Update README.md with FFmpeg dependency
-- [ ] 6.3 Add troubleshooting section for FFmpeg installation
+- [x] 6.1 Document new MP3 configuration options in docstrings
+- [x] 6.2 Update README.md with FFmpeg dependency
+- [x] 6.3 Add troubleshooting section for FFmpeg installation
 
 ## 7. Testing
 
