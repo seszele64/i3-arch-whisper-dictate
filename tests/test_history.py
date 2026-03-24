@@ -7,13 +7,11 @@ to hang after execution because database connections weren't being closed.
 Fix: Added `asyncio.run(db.close())` in `finally` blocks for all four history commands.
 """
 
-import asyncio
 import os
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
-import click
 import pytest
 
 from whisper_dictate.cli import cli

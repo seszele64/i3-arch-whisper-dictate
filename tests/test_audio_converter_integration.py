@@ -46,11 +46,6 @@ class TestFileSizeReductionIntegration:
 
         This is an integration test that requires FFmpeg to be installed.
         """
-        try:
-            from pydub import AudioSegment
-        except ImportError:
-            pytest.skip("pydub not installed for real conversion test")
-
         from whisper_dictate.audio_converter import AudioConverter
 
         wav_size = real_wav_file.stat().st_size
@@ -134,7 +129,7 @@ class TestFileSizeReductionIntegration:
         """
         from whisper_dictate.audio_converter import AudioConverter
         from whisper_dictate.transcription import WhisperTranscriber
-        from whisper_dictate.config import OpenAIConfig, AudioConfig
+        from whisper_dictate.config import OpenAIConfig
 
         # Check FFmpeg availability first
         try:

@@ -15,11 +15,10 @@ Commands tested:
 - migrate (no database, but included for completeness)
 """
 
-import asyncio
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from click.testing import CliRunner

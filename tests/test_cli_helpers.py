@@ -8,7 +8,6 @@ These tests verify that the decorator properly:
 5. Preserves the original function's metadata (name and docstring)
 """
 
-import asyncio
 from unittest.mock import AsyncMock, patch
 
 import click

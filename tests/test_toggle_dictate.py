@@ -1,6 +1,5 @@
 """Tests for toggle_dictate module."""
 
-import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from pathlib import Path
 

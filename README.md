@@ -410,7 +410,31 @@ Configuration options (in `.env`):
 The CLI uses sensible defaults:
 - Sample rate: 16kHz (optimal for Whisper)
 - Channels: 1 (mono)
-- Format: 16-bit WAV
+- Format: 16-bit WAV (converted to MP3 before upload)
+
+#### MP3 Conversion
+
+WAV files are large (~10MB per minute at 44.1kHz stereo) but the Whisper API supports MP3 natively. By default, audio is automatically converted to MP3 before upload, achieving **80-90% file size reduction** with no impact on transcription quality for speech.
+
+Configuration options (in `.env`):
+- `MP3_ENABLED` - Enable/disable MP3 conversion (default: true)
+- `MP3_BITRATE` - MP3 encoding bitrate: '64k', '128k', '192k' (default: '128k')
+- `KEEP_WAV` - Keep original WAV after MP3 conversion (default: false)
+
+**Example `.env` configuration:**
+```bash
+OPENAI_API_KEY=your-api-key-here
+MP3_ENABLED=true
+MP3_BITRATE=128k
+KEEP_WAV=false
+```
+
+**Bitrate Guide:**
+| Bitrate | Quality | Size | Use Case |
+|---------|---------|------|----------|
+| 64k | Good | Smallest | Low bandwidth, voice notes |
+| 128k | Excellent | Moderate | Recommended for most users |
+| 192k | Best | Largest | High quality requirements |
 
 ---
 
@@ -472,6 +496,62 @@ pip install -e .
 # Install system packages
 sudo pacman -S python-pip ffmpeg portaudio
 ```
+
+### FFmpeg Installation Issues
+
+FFmpeg is required for MP3 audio conversion. If you see warnings about FFmpeg not being found, follow these steps:
+
+#### Verify FFmpeg is Installed
+```bash
+# Check if FFmpeg is installed and its version
+ffmpeg -version
+
+# Should output something like:
+# ffmpeg version 6.0 Copyright (c) 2000-2023 the FFmpeg developers
+```
+
+#### Install FFmpeg
+```bash
+# Arch Linux
+sudo pacman -S ffmpeg
+
+# Ubuntu/Debian
+sudo apt-get install ffmpeg
+
+# Fedora
+sudo dnf install ffmpeg
+
+# macOS
+brew install ffmpeg
+```
+
+#### If FFmpeg is Installed but Not Working
+```bash
+# Check if FFmpeg is in your PATH
+which ffmpeg
+
+# Verify FFmpeg can be found by Python
+python -c "import subprocess; subprocess.run(['ffmpeg', '-version'])"
+```
+
+#### Disable MP3 Conversion if FFmpeg is Unavailable
+
+If FFmpeg cannot be installed or is not working, you can disable MP3 conversion to continue using WAV files (note: this will result in larger file sizes):
+
+```bash
+# Set in your .env file
+MP3_ENABLED=false
+```
+
+The system will continue to function with WAV files, but uploads will be larger (~10MB per minute at 16kHz mono).
+
+#### Graceful Degradation
+
+If FFmpeg is missing during runtime:
+- The system logs a warning message
+- Returns the original WAV path
+- Continues to function normally with larger file sizes
+- Transcription quality remains unchanged
 
 ### No Audio Devices
 ```bash
