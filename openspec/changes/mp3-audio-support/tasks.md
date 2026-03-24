@@ -11,12 +11,12 @@
 
 ## 3. AudioConverter Implementation
 
-- [ ] 3.1 Create whisper_dictate/audio_converter.py with AudioConverter class
-- [ ] 3.2 Implement convert() method with WAV to MP3 conversion using pydub
-- [ ] 3.3 Implement graceful fallback when FFmpeg is unavailable
-- [ ] 3.4 Add logging for conversion operations
-- [ ] 3.5 Ensure all file path handling supports both .wav and .mp3 extensions
-- [ ] 3.6 Add unit tests for AudioConverter
+- [x] 3.1 Create whisper_dictate/audio_converter.py with AudioConverter class
+- [x] 3.2 Implement convert() method with WAV to MP3 conversion using pydub
+- [x] 3.3 Implement graceful fallback when FFmpeg is unavailable
+- [x] 3.4 Add logging for conversion operations
+- [x] 3.5 Ensure all file path handling supports both .wav and .mp3 extensions
+- [x] 3.6 Add unit tests for AudioConverter
 
 ## 4. Transcription Integration
 
