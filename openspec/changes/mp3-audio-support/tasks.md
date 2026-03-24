@@ -28,8 +28,8 @@
 
 ## 5. Database Schema Update
 
-- [ ] 5.1 Add format column to recordings table (default: 'mp3')
-- [ ] 5.2 Update toggle_dictate.py to pass format when creating recording
+- [x] 5.1 Add format column to recordings table (default: 'mp3')
+- [x] 5.2 Update toggle_dictate.py to pass format when creating recording
 
 ## 6. Documentation
 
