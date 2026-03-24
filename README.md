@@ -12,6 +12,23 @@ A Python CLI for voice dictation using OpenAI Whisper API with global key bindin
 - 📊 **Persistent History**: SQLite database stores all transcriptions and logs
 - 🔍 **CLI Management**: Full command-line interface for managing transcriptions and logs
 
+## Prerequisites
+
+### FFmpeg (Required for MP3 audio support)
+
+FFmpeg is required for MP3 encoding and conversion. Install it via your package manager:
+
+```bash
+# Arch Linux
+sudo pacman -S ffmpeg
+
+# Ubuntu/Debian
+sudo apt-get install ffmpeg
+
+# macOS
+brew install ffmpeg
+```
+
 ## Quick Start
 
 ### 1. Install the Package

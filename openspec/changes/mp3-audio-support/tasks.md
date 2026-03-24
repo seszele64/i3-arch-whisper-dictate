@@ -1,7 +1,7 @@
 ## 1. Dependencies
 
-- [ ] 1.1 Add pydub==0.25.1 to requirements.txt
-- [ ] 1.2 Add FFmpeg installation instructions to README.md
+- [x] 1.1 Add pydub==0.25.1 to requirements.txt
+- [x] 1.2 Add FFmpeg installation instructions to README.md
 
 ## 2. Configuration Changes
 
