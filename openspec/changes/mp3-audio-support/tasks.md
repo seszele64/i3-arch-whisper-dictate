@@ -5,9 +5,9 @@
 
 ## 2. Configuration Changes
 
-- [ ] 2.1 Add mp3_enabled field to AudioConfig (default: True)
-- [ ] 2.2 Add mp3_bitrate field to AudioConfig (default: "128k")
-- [ ] 2.3 Add keep_wav field to AudioConfig (default: False)
+- [x] 2.1 Add mp3_enabled field to AudioConfig (default: True)
+- [x] 2.2 Add mp3_bitrate field to AudioConfig (default: "128k")
+- [x] 2.3 Add keep_wav field to AudioConfig (default: False)
 
 ## 3. AudioConverter Implementation
 
