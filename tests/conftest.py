@@ -82,20 +82,27 @@ def reset_persistent_notification_state():
     import whisper_dictate.notifications as notifications_module
     from unittest.mock import patch
 
-    # Store original
+    # Store original values
     original_time = notifications_module.PersistentNotification._last_operation_time
+    original_recording = (
+        notifications_module.PersistentNotification._recording_notification
+    )
 
     # Apply patch with explicit control
     patcher = patch.object(notifications_module, "is_dunst_running", return_value=True)
     patcher.start()
 
     notifications_module.PersistentNotification._last_operation_time = 0.0
+    notifications_module.PersistentNotification._recording_notification = None
 
     yield
 
     # Explicit cleanup
     patcher.stop()
     notifications_module.PersistentNotification._last_operation_time = original_time
+    notifications_module.PersistentNotification._recording_notification = (
+        original_recording
+    )
 
 
 @pytest.fixture
@@ -251,83 +258,34 @@ def temp_env_vars() -> Generator[None, None, None]:
     os.environ.update(original_env)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_sounddevice():
-    """Ensure sounddevice/PortAudio threads are cleaned up after all tests."""
-    yield
-    # Force cleanup of sounddevice resources
-    try:
-        import sounddevice as sd
+@pytest.fixture
+def async_cleanup(request):
+    """Function-scoped fixture for async resource cleanup.
 
-        sd.stop()
-    except Exception:
-        pass
-
-    # Give threads time to clean up
+    Uses pytest's request.addfinalizer() pattern to allow any pending
+    async tasks to complete after each test. This is function-scoped
+    rather than session-scoped to avoid event loop conflicts with
+    pytest-asyncio.
+    """
+    import asyncio
     import time
 
-    time.sleep(0.1)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_aiosqlite():
-    """Ensure all aiosqlite connections are closed after tests.
-
-    This fixture prevents pytest from hanging due to aiosqlite's background
-    worker thread that blocks on queue.get() if close() is never called.
-    This commonly happens when tests mock the database with AsyncMock.
-    """
-    yield
-
-    # Force cleanup of any aiosqlite connections
-    try:
-        import asyncio
-
-        # Try to run any pending async cleanup
+    def cleanup():
+        """Allow pending async tasks to complete."""
         try:
             loop = asyncio.get_running_loop()
             # Schedule a small task to let pending async operations complete
             try:
-                loop.run_until_complete(asyncio.sleep(0.05))
+                loop.run_until_complete(asyncio.sleep(0.01))
             except RuntimeError:
                 # Loop already running or closed, ignore
                 pass
         except RuntimeError:
-            # No running loop, try to get or create one
-            try:
-                loop = asyncio.get_event_loop()
-                if not loop.is_closed():
-                    loop.run_until_complete(asyncio.sleep(0.05))
-            except RuntimeError:
-                # No event loop available, skip async cleanup
-                pass
-    except ImportError:
-        pass
+            # No running loop available, skip async cleanup
+            pass
 
-    # Give threads time to exit
-    import time
+        # Small delay to allow task cleanup
+        time.sleep(0.01)
 
-    time.sleep(0.2)
-
-    # Also try to close any global database singleton that might have been created
-    try:
-        from whisper_dictate import database as db_module
-
-        # Check if there's a global database instance
-        if hasattr(db_module, "_database") and db_module._database is not None:
-            # Try to close it if it's not already closed
-            try:
-                import asyncio
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    loop.run_until_complete(db_module._database.close())
-                finally:
-                    loop.close()
-            except Exception:
-                # If we can't close it gracefully, just reset the reference
-                pass
-            db_module._database = None
-    except ImportError:
-        pass
+    request.addfinalizer(cleanup)
+    return cleanup

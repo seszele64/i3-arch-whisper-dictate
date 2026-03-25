@@ -9,24 +9,24 @@
 
 ## 2. conftest.py Modifications
 
-- [ ] 2.1 Remove cleanup_sounddevice session-scoped autouse fixture
+- [x] 2.1 Remove cleanup_sounddevice session-scoped autouse fixture
   - **File**: `conftest.py`
   - **Lines**: 254-269
   - **Reference**: Design.md lines 50, 240-246 (Decision 1)
   - **Verification**: `grep -n "cleanup_sounddevice" conftest.py` returns no fixture definition
 
-- [ ] 2.2 Remove cleanup_aiosqlite session-scoped autouse fixture
+- [x] 2.2 Remove cleanup_aiosqlite session-scoped autouse fixture
   - **File**: `conftest.py`
   - **Lines**: 272-333
   - **Reference**: Design.md lines 50, 240-246 (Decision 1)
   - **Verification**: `grep -n "cleanup_aiosqlite" conftest.py` returns no fixture definition
 
-- [ ] 2.3 Enhance reset_persistent_notification_state to clear _recording_notification
+- [x] 2.3 Enhance reset_persistent_notification_state to clear _recording_notification
   - **File**: `conftest.py`
   - **Reference**: Design.md lines 161-168, 243 (Decision 6)
   - **Verification**: Fixture saves/restores `notifications_module.PersistentNotification._recording_notification`
 
-- [ ] 2.4 Add async_cleanup function-scoped fixture for async resource cleanup
+- [x] 2.4 Add async_cleanup function-scoped fixture for async resource cleanup
   - **File**: `conftest.py`
   - **Reference**: Design.md lines 178-196, 244 (Decision 7)
   - **Verification**: `async_cleanup` fixture available; uses `request.addfinalizer()` pattern
