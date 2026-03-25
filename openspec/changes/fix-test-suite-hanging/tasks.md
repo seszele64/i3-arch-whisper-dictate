@@ -33,17 +33,17 @@
 
 ## 3. test_database_update.py Conversions
 
-- [ ] 3.1 Add @pytest.mark.asyncio decorator to all async test methods in TestUpdateTranscript
+- [x] 3.1 Add @pytest.mark.asyncio decorator to all async test methods in TestUpdateTranscript
   - **File**: `tests/test_database_update.py`
   - **Reference**: Design.md lines 70-80, 259-262 (Decision 2)
   - **Verification**: All async test methods have `@pytest.mark.asyncio` decorator
 
-- [ ] 3.2 Replace asyncio.run(...) calls with await expressions
+- [x] 3.2 Replace asyncio.run(...) calls with await expressions
   - **File**: `tests/test_database_update.py`
   - **Reference**: Design.md lines 71-80 (Decision 2)
   - **Verification**: No `asyncio.run()` calls remain in the file
 
-- [ ] 3.3 Change test method definitions from `def` to `async def`
+- [x] 3.3 Change test method definitions from `def` to `async def`
   - **File**: `tests/test_database_update.py`
   - **Reference**: Design.md lines 71-80 (Decision 2)
   - **Verification**: All async test methods are defined as `async def`
