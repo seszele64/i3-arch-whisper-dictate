@@ -57,37 +57,37 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run individual test files to confirm they pass
+- [x] 5.1 Run individual test files to confirm they pass
   - **Command**: `pytest tests/test_database_update.py -v && pytest tests/test_audio_converter.py -v`
   - **Reference**: Acceptance Criteria #1, #2 (spec.md lines 74-75)
   - **Verification**: All tests in both files pass
 
-- [ ] 5.2 Run full test suite to confirm no hanging
+- [x] 5.2 Run full test suite to confirm no hanging
   - **Command**: `pytest --timeout=30`
   - **Reference**: Acceptance Criteria #1 (spec.md line 74)
   - **Verification**: Suite completes without hanging, all tests finish within timeout
 
-- [ ] 5.3 Verify pytest-asyncio strict mode is enforced
+- [x] 5.3 Verify pytest-asyncio strict mode is enforced
   - **Command**: `pytest --collect-only`
   - **Reference**: Acceptance Criteria #3, #6 (spec.md lines 76, 79)
   - **Verification**: Tests without `@pytest.mark.asyncio` are not collected as async tests
 
-- [ ] 5.4 Confirm session-scoped autouse fixtures are removed
+- [x] 5.4 Confirm session-scoped autouse fixtures are removed
   - **Command**: `grep -E "(cleanup_sounddevice|cleanup_aiosqlite).*autouse" conftest.py`
   - **Reference**: Acceptance Criteria #4 (spec.md line 77)
   - **Verification**: No results returned
 
-- [ ] 5.5 Confirm pytest-timeout is configured with 30s default
+- [x] 5.5 Confirm pytest-timeout is configured with 30s default
   - **Command**: `grep -E "^timeout\s*=" pytest.ini`
   - **Reference**: Acceptance Criteria #7 (spec.md line 80)
   - **Verification**: `timeout = 30` is present in pytest.ini
 
-- [ ] 5.6 Confirm patch.dict() is used in test_audio_converter.py
+- [x] 5.6 Confirm patch.dict() is used in test_audio_converter.py
   - **Command**: `grep -n "patch.dict" tests/test_audio_converter.py`
   - **Reference**: Acceptance Criteria #8 (spec.md line 81)
   - **Verification**: `patch.dict` is found in mock_pydub_in_sys_modules fixture
 
-- [ ] 5.7 Confirm global state fixture includes _recording_notification
+- [x] 5.7 Confirm global state fixture includes _recording_notification
   - **Command**: `grep -A5 "reset_persistent_notification_state" conftest.py | grep "_recording_notification"`
   - **Reference**: Acceptance Criteria #9 (spec.md line 82)
   - **Verification**: `_recording_notification` is saved and restored in the fixture

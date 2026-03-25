@@ -84,25 +84,21 @@ def reset_persistent_notification_state():
 
     # Store original values
     original_time = notifications_module.PersistentNotification._last_operation_time
-    original_recording = (
-        notifications_module.PersistentNotification._recording_notification
-    )
+    original_recording = notifications_module._recording_notification
 
     # Apply patch with explicit control
     patcher = patch.object(notifications_module, "is_dunst_running", return_value=True)
     patcher.start()
 
     notifications_module.PersistentNotification._last_operation_time = 0.0
-    notifications_module.PersistentNotification._recording_notification = None
+    notifications_module._recording_notification = None
 
     yield
 
     # Explicit cleanup
     patcher.stop()
     notifications_module.PersistentNotification._last_operation_time = original_time
-    notifications_module.PersistentNotification._recording_notification = (
-        original_recording
-    )
+    notifications_module._recording_notification = original_recording
 
 
 @pytest.fixture
