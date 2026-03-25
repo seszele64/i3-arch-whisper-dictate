@@ -48,21 +48,10 @@ class MockPydub:
 @pytest.fixture(autouse=True)
 def mock_pydub_in_sys_modules():
     """Add mock pydub module to sys.modules before tests."""
-    # Store original pydub if it exists
-    original_pydub = sys.modules.get("pydub")
-
-    # Create and add mock pydub to sys.modules
     mock_module = Mock()
     mock_module.AudioSegment = MockAudioSegment
-    sys.modules["pydub"] = mock_module
-
-    yield
-
-    # Restore original
-    if original_pydub is not None:
-        sys.modules["pydub"] = original_pydub
-    else:
-        sys.modules.pop("pydub", None)
+    with patch.dict(sys.modules, {"pydub": mock_module}):
+        yield mock_module
 
 
 class TestAudioConverter:

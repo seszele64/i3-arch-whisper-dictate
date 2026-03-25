@@ -50,7 +50,7 @@
 
 ## 4. test_audio_converter.py Mock Fix
 
-- [ ] 4.1 Replace direct sys.modules manipulation with patch.dict() in mock_pydub_in_sys_modules
+- [x] 4.1 Replace direct sys.modules manipulation with patch.dict() in mock_pydub_in_sys_modules
   - **File**: `tests/test_audio_converter.py`
   - **Reference**: Design.md lines 129-151, 264-265 (Decision 5)
   - **Verification**: Fixture uses `with patch.dict(sys.modules, {"pydub": mock_module}):` pattern
