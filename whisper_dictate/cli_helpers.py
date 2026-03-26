@@ -10,7 +10,7 @@ def _run_async(coro):
     """Run a coroutine in a new event loop, handling nested loop cases."""
     try:
         # Try to get existing loop
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         # No running loop - safe to use asyncio.run()
         return asyncio.run(coro)

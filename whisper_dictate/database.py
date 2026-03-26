@@ -296,7 +296,7 @@ class Database:
                     file_path TEXT NOT NULL,
                     timestamp TEXT NOT NULL DEFAULT (datetime('now')),
                     duration REAL,
-                    format TEXT NOT NULL DEFAULT 'wav',
+                    format TEXT NOT NULL DEFAULT 'mp3',
                     sample_rate INTEGER,
                     channels INTEGER,
                     created_at TEXT NOT NULL DEFAULT (datetime('now'))

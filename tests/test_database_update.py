@@ -1,7 +1,6 @@
 """Tests for database update_transcript method."""
 
-import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -40,7 +39,7 @@ class TestUpdateTranscript:
         )
 
         # Update result
-        mock_db.update_transcript = AsyncMock(return_value=True)
+        mock_db.update_transcript = MagicMock(return_value=True)
 
         # Initialize and close methods
         mock_db.initialize = AsyncMock()
@@ -54,7 +53,7 @@ class TestUpdateTranscript:
         mock_db = AsyncMock()
 
         mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-        mock_db.update_transcript = AsyncMock(return_value=False)
+        mock_db.update_transcript = MagicMock(return_value=False)
         mock_db.initialize = AsyncMock()
         mock_db.close = AsyncMock()
 
@@ -63,14 +62,12 @@ class TestUpdateTranscript:
     def test_update_transcript_text_only_mock(self, mock_database_with_update):
         """Test updating transcript text only using mock."""
         # Directly test the database method with mock
-        mock_database_with_update.update_transcript = AsyncMock(return_value=True)
+        mock_database_with_update.update_transcript = MagicMock(return_value=True)
 
         # Call the async method
-        result = asyncio.run(
-            mock_database_with_update.update_transcript(
-                transcript_id=1,
-                text="Updated text",
-            )
+        result = mock_database_with_update.update_transcript(
+            transcript_id=1,
+            text="Updated text",
         )
 
         assert result is True
@@ -80,12 +77,10 @@ class TestUpdateTranscript:
     def test_update_transcript_text_and_language_mock(self, mock_database_with_update):
         """Test updating transcript text and language using mock."""
         # Call the async method
-        result = asyncio.run(
-            mock_database_with_update.update_transcript(
-                transcript_id=1,
-                text="Updated text in Spanish",
-                language="es",
-            )
+        result = mock_database_with_update.update_transcript(
+            transcript_id=1,
+            text="Updated text in Spanish",
+            language="es",
         )
 
         assert result is True
@@ -97,25 +92,21 @@ class TestUpdateTranscript:
 
     def test_update_transcript_nonexistent_id_mock(self, mock_database_not_found):
         """Test updating a nonexistent transcript returns False."""
-        result = asyncio.run(
-            mock_database_not_found.update_transcript(
-                transcript_id=99999,
-                text="This should not work",
-            )
+        result = mock_database_not_found.update_transcript(
+            transcript_id=99999,
+            text="This should not work",
         )
 
         assert result is False
 
     def test_update_transcript_with_language_none_mock(self, mock_database_with_update):
         """Test that passing language=None updates text without changing language."""
-        mock_database_with_update.update_transcript = AsyncMock(return_value=True)
+        mock_database_with_update.update_transcript = MagicMock(return_value=True)
 
-        result = asyncio.run(
-            mock_database_with_update.update_transcript(
-                transcript_id=1,
-                text="New text",
-                language=None,
-            )
+        result = mock_database_with_update.update_transcript(
+            transcript_id=1,
+            text="New text",
+            language=None,
         )
 
         assert result is True

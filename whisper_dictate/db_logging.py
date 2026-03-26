@@ -5,8 +5,8 @@ in addition to file-based logging. This enables structured log querying and filt
 """
 
 import asyncio
-import json
 import logging
+import sqlite3
 from typing import Any, Optional
 
 from whisper_dictate.database import Database, get_database
@@ -181,7 +181,6 @@ class SyncDatabaseLogHandler:
             source_prefix: Prefix for log source names
             retention_days: Number of days to retain logs
         """
-        import sqlite3
         from pathlib import Path
 
         self._db_path = Path(database_path)

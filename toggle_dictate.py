@@ -165,7 +165,7 @@ def start_background_recording(config):
                 db.create_recording(
                     file_path=str(AUDIO_FILE),
                     duration=None,  # Will be updated on stop
-                    format="wav",
+                    format="wav",  # toggle_dictate.py always records WAV
                     sample_rate=44100,
                     channels=2,
                 )

@@ -86,6 +86,24 @@ class AudioConfig(BaseModel):
     device: Optional[int | str] = Field(
         default=None, description="Audio input device index or name"
     )
+    mp3_enabled: bool = Field(
+        default=True,
+        description="Enable MP3 conversion before API upload. "
+        "Reduces file size by 80-90% with no impact on transcription quality. "
+        "Set to False to keep original WAV format.",
+    )
+    mp3_bitrate: str = Field(
+        default="128k",
+        description="MP3 encoding bitrate (e.g., '64k', '128k', '192k'). "
+        "Higher values produce larger files with marginal quality improvement for speech. "
+        "'128k' is recommended for voice transcription.",
+    )
+    keep_wav: bool = Field(
+        default=False,
+        description="Keep original WAV file after MP3 conversion. "
+        "When False (default), WAV is deleted after successful MP3 creation to save space. "
+        "Set to True if you need to preserve original recordings.",
+    )
 
 
 class OpenAIConfig(BaseModel):

@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from pathlib import Path
+from types import TracebackType
 from typing import Optional, Tuple
 
 from whisper_dictate.config import AppConfig, DatabaseConfig
@@ -11,6 +12,7 @@ from whisper_dictate.transcription import WhisperTranscriber, TranscriptionResul
 from whisper_dictate.clipboard import ClipboardManager
 from whisper_dictate.database import Database, get_database
 from whisper_dictate.audio_storage import AudioStorage, get_audio_storage
+from whisper_dictate.audio_converter import AudioConverter
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,11 @@ class DictationService:
         self.audio_recorder = AudioRecorder(config.audio)
         self.transcriber = WhisperTranscriber(config.openai)
         self.clipboard = ClipboardManager()
+
+        # Initialize audio converter for MP3 support
+        self.audio_converter = AudioConverter(
+            bitrate=config.audio.mp3_bitrate, keep_wav=config.audio.keep_wav
+        )
 
         # Initialize database and audio storage
         self._db: Optional[Database] = None
@@ -115,10 +122,29 @@ class DictationService:
 
             # Record audio
             logger.info("Starting dictation workflow")
-            audio_file = self.audio_recorder.record_to_file(duration)
+            wav_file = self.audio_recorder.record_to_file(duration)
 
             # Determine recording duration
             actual_duration = duration or self.config.audio.duration
+
+            # Convert to MP3 if enabled (before transcription)
+            # The audio_file may be WAV or MP3 depending on mp3_enabled setting
+            audio_file = wav_file
+            audio_format = "wav"
+            if self.config.audio.mp3_enabled:
+                logger.info(
+                    f"Converting WAV to MP3 (bitrate={self.config.audio.mp3_bitrate})"
+                )
+                audio_file = self.audio_converter.convert(
+                    wav_file, delete_source=not self.config.audio.keep_wav
+                )
+                if audio_file.suffix == ".mp3":
+                    audio_format = "mp3"
+                    logger.info(f"Using MP3 for transcription: {audio_file}")
+                else:
+                    # Conversion failed, fell back to WAV
+                    logger.warning("MP3 conversion failed, using WAV for transcription")
+                    audio_format = "wav"
 
             # Create recording entry in database (status: recording)
             try:
@@ -126,7 +152,7 @@ class DictationService:
                     self.database.create_recording(
                         file_path="",  # Will be updated after saving
                         duration=actual_duration,
-                        format="wav",
+                        format=audio_format,
                         sample_rate=self.config.audio.sample_rate,
                         channels=self.config.audio.channels,
                     )
@@ -136,7 +162,7 @@ class DictationService:
                 logger.warning(f"Failed to create recording entry: {e}")
                 recording_id = None
 
-            # Transcribe audio
+            # Transcribe audio (may be WAV or MP3)
             result = self.transcriber.transcribe_audio(audio_file)
 
             # Save audio to persistent storage and update recording
@@ -244,6 +270,32 @@ class DictationService:
         if self._db:
             asyncio.run(self._db.close())
             self._db = None
+
+    def __enter__(self) -> "DictationService":
+        """Enter context manager.
+
+        Returns:
+            DictationService: Self for use in with statement
+        """
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        """Exit context manager with proper cleanup.
+
+        Args:
+            exc_type: Exception type if an exception was raised
+            exc_val: Exception value if an exception was raised
+            exc_tb: Exception traceback if an exception was raised
+
+        Returns:
+            None: Exceptions are not suppressed
+        """
+        self.close_sync()
 
     def get_system_info(self) -> dict:
         """WHY THIS EXISTS: Users need diagnostic information to troubleshoot
