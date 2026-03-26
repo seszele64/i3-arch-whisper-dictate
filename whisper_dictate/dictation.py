@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from pathlib import Path
+from types import TracebackType
 from typing import Optional, Tuple
 
 from whisper_dictate.config import AppConfig, DatabaseConfig
@@ -269,6 +270,32 @@ class DictationService:
         if self._db:
             asyncio.run(self._db.close())
             self._db = None
+
+    def __enter__(self) -> "DictationService":
+        """Enter context manager.
+
+        Returns:
+            DictationService: Self for use in with statement
+        """
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        """Exit context manager with proper cleanup.
+
+        Args:
+            exc_type: Exception type if an exception was raised
+            exc_val: Exception value if an exception was raised
+            exc_tb: Exception traceback if an exception was raised
+
+        Returns:
+            None: Exceptions are not suppressed
+        """
+        self.close_sync()
 
     def get_system_info(self) -> dict:
         """WHY THIS EXISTS: Users need diagnostic information to troubleshoot
