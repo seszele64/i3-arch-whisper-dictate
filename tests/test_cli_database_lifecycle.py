@@ -244,7 +244,9 @@ class TestLogsCommandsDatabaseClose:
                 export_file = f.name
 
             try:
-                result = cli_runner.invoke(cli, ["logs", "export", export_file])
+                result = cli_runner.invoke(
+                    cli, ["logs", "export", export_file], input="y\n"
+                )
 
                 assert result.exit_code == 0, f"Command failed: {result.output}"
                 assert mock_database_with_logs.close.called, (
@@ -268,7 +270,9 @@ class TestLogsCommandsDatabaseClose:
 
             try:
                 result = cli_runner.invoke(
-                    cli, ["logs", "export", export_file, "--format", "json"]
+                    cli,
+                    ["logs", "export", export_file, "--format", "json"],
+                    input="y\n",
                 )
 
                 assert result.exit_code == 0

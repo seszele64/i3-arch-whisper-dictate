@@ -1,13 +1,47 @@
+import sys
+from pathlib import Path
+
+# Add project root to path for toggle_dictate module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 """Test configuration and fixtures for whisper-dictate."""
 
-import atexit
 import os
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_cli_setup():
+    """Prevent CLI from initializing real database during tests."""
+    os.environ["OPENAI_API_KEY"] = "test-api-key"
+
+    with (
+        patch("whisper_dictate.cli.setup_logging") as mock_setup_logging,
+        patch("whisper_dictate.cli.load_config") as mock_load_config,
+    ):
+        mock_setup_logging.return_value = None
+
+        mock_config = Mock()
+        mock_config.openai.api_key = "test-api-key"
+        mock_config.audio.sample_rate = 16000
+        mock_config.audio.channels = 1
+        mock_config.audio.duration = 1.0
+        mock_config.audio.device = None
+        mock_config.audio.mp3_enabled = False
+        mock_config.log_level = "DEBUG"
+        mock_config.copy_to_clipboard = True
+        mock_load_config.return_value = mock_config
+
+        yield
+
+
+import atexit
 import sys
 import tempfile
 from pathlib import Path
 from typing import Generator
-import pytest
-from unittest.mock import Mock, patch
 
 from whisper_dictate.config import AppConfig, AudioConfig, OpenAIConfig
 from whisper_dictate.transcription import TranscriptionResult
@@ -285,3 +319,25 @@ def async_cleanup(request):
 
     request.addfinalizer(cleanup)
     return cleanup
+
+
+@pytest.fixture
+def database():
+    """Provide a mock database with proper lifecycle tracking.
+
+    This fixture provides a mock database that:
+    - Has all common methods as AsyncMocks
+    - Tracks whether close() was called
+    - Can be used to verify proper cleanup
+    """
+    mock_db = AsyncMock()
+    mock_db.initialize = AsyncMock()
+    mock_db.close = AsyncMock()
+    mock_db.query_logs = AsyncMock(return_value=[])
+    mock_db.cleanup_old_logs = AsyncMock(return_value=0)
+    mock_db.list_transcriptions = AsyncMock(return_value=[])
+    mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
+    mock_db.search_transcripts = AsyncMock(return_value=[])
+    mock_db.delete_recording = AsyncMock(return_value=False)
+    mock_db.update_transcript = AsyncMock(return_value=False)
+    return mock_db
