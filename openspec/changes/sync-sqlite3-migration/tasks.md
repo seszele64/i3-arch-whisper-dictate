@@ -82,7 +82,7 @@
 
 ## 5. Verification & Rollback Preparation
 
-- [ ] 5.1 Commit changes to git branch with descriptive message
-- [ ] 5.2 Run end-to-end CLI workflow test (record, transcribe, view history)
-- [ ] 5.3 Verify WAL mode is functioning correctly on existing database
-- [ ] 5.4 Document rollback steps (revert to aiosqlite implementation if needed)
+- [x] 5.1 Commit changes to git branch with descriptive message
+- [x] 5.2 Run end-to-end CLI workflow test (record, transcribe, view history)
+- [x] 5.3 Verify WAL mode is functioning correctly on existing database
+- [x] 5.4 Document rollback steps (revert to aiosqlite implementation if needed)
