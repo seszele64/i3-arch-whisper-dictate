@@ -199,6 +199,32 @@ class WhisperConfig(BaseModel):
 OpenAIConfig = WhisperConfig
 
 
+def _load_whisper_config_from_env() -> WhisperConfig:
+    """Load WhisperConfig from WHISPER_* environment variables.
+
+    Env vars supported:
+    - WHISPER_PROVIDER: Provider type (openai, groq, together, local, custom). Default: "openai"
+    - WHISPER_API_KEY: Explicit API key. Default: "" (falls back to provider-specific env var)
+    - WHISPER_BASE_URL: Custom API base URL. Default: None (uses provider default)
+    - WHISPER_MODEL: Model name. Default: "whisper-1"
+    - WHISPER_TIMEOUT: Request timeout in seconds. Default: 30.0
+    - WHISPER_LANGUAGE: Language hint (ISO 639-1). Default: None (auto-detect)
+    - WHISPER_TEMPERATURE: Sampling temperature. Default: 0.0
+
+    Returns:
+        WhisperConfig: Configuration loaded from environment variables.
+    """
+    return WhisperConfig(
+        provider=os.getenv("WHISPER_PROVIDER", "openai"),
+        api_key=os.getenv("WHISPER_API_KEY", ""),
+        base_url=os.getenv("WHISPER_BASE_URL") or None,
+        model=os.getenv("WHISPER_MODEL", "whisper-1"),
+        timeout=float(os.getenv("WHISPER_TIMEOUT", "30.0")),
+        language=os.getenv("WHISPER_LANGUAGE") or None,
+        temperature=float(os.getenv("WHISPER_TEMPERATURE", "0.0")),
+    )
+
+
 class AppConfig(BaseModel):
     """WHY THIS EXISTS: Application configuration needs to be centralized
     for easy management and testing.
@@ -211,9 +237,7 @@ class AppConfig(BaseModel):
 
     database: DatabaseConfig = Field(default_factory=lambda: DatabaseConfig())
     audio: AudioConfig = Field(default_factory=AudioConfig)
-    openai: OpenAIConfig = Field(
-        default_factory=lambda: OpenAIConfig(api_key=os.getenv("OPENAI_API_KEY", ""))
-    )
+    openai: OpenAIConfig = Field(default_factory=_load_whisper_config_from_env)
     log_level: str = Field(default="INFO", description="Logging level")
     copy_to_clipboard: bool = Field(
         default=True, description="Copy transcription to clipboard"
