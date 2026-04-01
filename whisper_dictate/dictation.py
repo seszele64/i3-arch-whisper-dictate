@@ -8,7 +8,10 @@ from typing import Optional, Tuple
 
 from whisper_dictate.config import AppConfig, DatabaseConfig
 from whisper_dictate.audio import AudioRecorder
-from whisper_dictate.transcription import WhisperTranscriber, TranscriptionResult
+from whisper_dictate.transcription import (
+    create_transcriber,
+    TranscriptionResult,
+)
 from whisper_dictate.clipboard import ClipboardManager
 from whisper_dictate.database import Database, get_database
 from whisper_dictate.audio_storage import AudioStorage, get_audio_storage
@@ -39,7 +42,7 @@ class DictationService:
         """
         self.config = config
         self.audio_recorder = AudioRecorder(config.audio)
-        self.transcriber = WhisperTranscriber(config.openai)
+        self.transcriber = create_transcriber(config.openai)
         self.clipboard = ClipboardManager()
 
         # Initialize audio converter for MP3 support

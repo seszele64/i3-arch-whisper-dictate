@@ -61,14 +61,14 @@ class TestTranscribeAudio:
             patch(
                 "toggle_dictate.sf.info", return_value=mock_audio_info
             ) as mock_sf_info,
-            patch("toggle_dictate.WhisperTranscriber") as mock_transcriber_class,
+            patch("toggle_dictate.create_transcriber") as mock_create_transcriber,
             patch("toggle_dictate.AUDIO_FILE", mock_audio_file),
             patch("toggle_dictate.ClipboardManager") as mock_clipboard_class,
         ):
             # Setup mocks
             mock_get_db_storage.return_value = (mock_db, mock_audio_storage)
             mock_transcriber_instance = MagicMock()
-            mock_transcriber_class.return_value = mock_transcriber_instance
+            mock_create_transcriber.return_value = mock_transcriber_instance
             mock_transcriber_instance.transcribe_audio.return_value = (
                 mock_transcription_result
             )

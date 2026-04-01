@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from whisper_dictate.config import load_config, DatabaseConfig
-from whisper_dictate.transcription import WhisperTranscriber
+from whisper_dictate.transcription import create_transcriber
 from whisper_dictate.clipboard import ClipboardManager
 from whisper_dictate.notifications import (
     notify_recording_start,
@@ -291,7 +291,7 @@ def transcribe_audio(config, recording_id=None):
             logging.warning(f"Failed to save audio to persistent storage: {e}")
 
         # Transcribe audio
-        transcriber = WhisperTranscriber(config.openai)
+        transcriber = create_transcriber(config.openai)
         audio_to_transcribe = saved_path if saved_path else AUDIO_FILE
 
         # Calculate and update recording duration

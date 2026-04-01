@@ -25,6 +25,12 @@ def mock_cli_setup():
 
         mock_config = Mock()
         mock_config.openai.api_key = "test-api-key"
+        mock_config.openai.provider = "openai"
+        mock_config.openai.base_url = None
+        mock_config.openai.model = "whisper-1"
+        mock_config.openai.timeout = 30.0
+        mock_config.openai.language = None
+        mock_config.openai.temperature = 0.0
         mock_config.audio.sample_rate = 16000
         mock_config.audio.channels = 1
         mock_config.audio.duration = 1.0
