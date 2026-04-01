@@ -25,9 +25,9 @@ The whisper-dictate CLI application crashes with "RuntimeError: Event loop is cl
 - `whisper_dictate/dictation.py` — Remove asyncio.run() wrappers (~7 calls)
 - `whisper_dictate/cli.py` — Remove asyncio.run() wrappers (~9 calls)
 - `whisper_dictate/toggle_dictate.py` — Remove asyncio.run() wrappers (~15 calls)
-- `whisper_dictate/cli_helpers.py` — Simplify with_database decorator
-- `whisper_dictate/db_logging.py` — Remove asyncio.run() wrappers
-- `whisper_dictate/audio_storage.py` — Remove asyncio.run() wrappers
+- `whisper_dictate/cli_helpers.py` — Remove asyncio.run() wrappers (~3 calls)
+- `whisper_dictate/db_logging.py` — Remove asyncio.run() wrappers (~2 calls)
+- `whisper_dictate/audio_storage.py` — Remove asyncio.run() wrappers (~3 calls)
 
 **Dependencies:**
 - Remove: `aiosqlite`
@@ -37,4 +37,4 @@ The whisper-dictate CLI application crashes with "RuntimeError: Event loop is cl
 
 **Risk:** Low — synchronous sqlite3 is battle-tested; WAL mode preserves crash recovery guarantees
 
-**Estimated Effort:** 7-11 days
+**Estimated Effort:** 5-7 days

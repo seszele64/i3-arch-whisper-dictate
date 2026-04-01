@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+> **Scope Note**: This spec defines the NEW synchronous database layer capabilities. It covers the "how" — the implementation approach using sqlite3. The `002-database-persistence` delta spec covers the "what changed" — the specific requirements modified by replacing aiosqlite with sqlite3. Together they form the complete specification for this migration.
+
 ### Requirement: Database initialization with synchronous sqlite3
 The system SHALL use Python's standard library `sqlite3` for all database operations, providing a synchronous database layer.
 

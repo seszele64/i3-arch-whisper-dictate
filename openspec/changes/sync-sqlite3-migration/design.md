@@ -99,9 +99,9 @@ def get_settings(self) -> dict[str, Any]:
 - sqlite3 connections are thread-safe but should be used from one thread
 - Connection is created on first use, reused for all operations
 
-### Decision 5: Remove with_database Decorator
+### Decision 5: Remove with_database Decorator Entirely
 
-**Choice:** Simplify or remove the `with_database` decorator since no async context is needed.
+**Choice:** Remove the `with_database` decorator entirely since no async context is needed with synchronous database operations.
 
 **Before:**
 ```python
@@ -117,8 +117,9 @@ def foo(db, arg1):
 ```
 
 **Rationale:**
-- Eliminates decorator complexity
+- Eliminates decorator complexity entirely
 - Callers simply use `get_database()` and call methods directly
+- No async context means the decorator serves no purpose
 - Context manager `with get_database() as db:` still works if cleanup is needed
 
 ### Decision 6: Test Suite Migration
@@ -128,7 +129,7 @@ def foo(db, arg1):
 **Key Changes:**
 - `@pytest.fixture` instead of `@pytest.fixture` with async
 - `pytest.mark.asyncio` → standard pytest (sync tests)
-- `aiohttp` test fixtures → simple function calls
+- Remove async test infrastructure (event loop fixtures, async test markers)
 - No event loop management in tests
 
 **Rationale:**
@@ -170,7 +171,7 @@ Files to update (remove `asyncio.run()` wrappers):
 - `dictation.py` (~7 calls)
 - `cli.py` (~9 calls)
 - `toggle_dictate.py` (~15 calls)
-- `cli_helpers.py` (simplify decorator)
+- `cli_helpers.py` (remove with_database decorator)
 - `db_logging.py`
 - `audio_storage.py`
 
@@ -193,6 +194,12 @@ result = db.get_setting(...)
 1. Remove `aiosqlite` from `pyproject.toml` / `requirements.txt`
 2. Clean up any `async`-related imports
 3. Verify `uv run pytest` passes
+
+### Phase 5: Verification & Rollback Preparation (Day 5)
+1. Commit changes to git branch with descriptive message
+2. Run end-to-end CLI workflow test (record, transcribe, view history)
+3. Verify WAL mode is functioning correctly on existing database
+4. Document rollback steps (revert to aiosqlite implementation if needed)
 
 ### Rollback Strategy
 - Keep git branch with pre-migration commit

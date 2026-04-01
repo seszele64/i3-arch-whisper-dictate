@@ -37,8 +37,8 @@
 
 ### 2.4 Update cli_helpers.py
 
-- [ ] 2.4.1 Simplify `with_database` decorator (remove async context if present)
-- [ ] 2.4.2 Update decorator to work with synchronous Database class
+- [ ] 2.4.1 Remove `with_database` decorator entirely (no longer needed with sync DB)
+- [ ] 2.4.2 Update all callers to use `get_database()` directly instead of the decorator
 - [ ] 2.4.3 Run `uv run ruff check whisper_dictate/cli_helpers.py`
 
 ### 2.5 Update db_logging.py
