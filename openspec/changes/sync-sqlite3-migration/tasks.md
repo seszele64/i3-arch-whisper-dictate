@@ -1,16 +1,16 @@
 ## 1. Phase 1: Rewrite database.py (Days 1-2)
 
-- [ ] 1.1 Replace `import aiosqlite` with `import sqlite3` in database.py
-- [ ] 1.2 Convert `Database` class: change `async def` methods to `def` (synchronous)
-- [ ] 1.3 Replace `await cursor.execute()` calls with `cursor.execute()`
-- [ ] 1.4 Replace `async with` context managers with `with` (synchronous)
-- [ ] 1.5 Change `_connection` type from `aiosqlite.Connection` to `sqlite3.Connection`
-- [ ] 1.6 Convert `__aenter__`/`__aexit__` to `__enter__`/`__exit__` (sync context manager)
-- [ ] 1.7 Update `__init__.py` to export synchronous `Database` class
-- [ ] 1.8 Verify WAL mode is preserved: execute `PRAGMA journal_mode=WAL`
-- [ ] 1.9 Verify schema migrations still work with sqlite3
-- [ ] 1.10 Run `uv run pytest` to verify database tests pass
-- [ ] 1.11 Run `uv run ruff check whisper_dictate/database.py` for linting
+- [x] 1.1 Replace `import aiosqlite` with `import sqlite3` in database.py
+- [x] 1.2 Convert `Database` class: change `async def` methods to `def` (synchronous)
+- [x] 1.3 Replace `await cursor.execute()` calls with `cursor.execute()`
+- [x] 1.4 Replace `async with` context managers with `with` (synchronous)
+- [x] 1.5 Change `_connection` type from `aiosqlite.Connection` to `sqlite3.Connection`
+- [x] 1.6 Convert `__aenter__`/`__aexit__` to `__enter__`/`__exit__` (sync context manager)
+- [x] 1.7 Update `__init__.py` to export synchronous `Database` class
+- [x] 1.8 Verify WAL mode is preserved: execute `PRAGMA journal_mode=WAL`
+- [x] 1.9 Verify schema migrations still work with sqlite3
+- [x] 1.10 Run `uv run pytest` to verify database tests pass
+- [x] 1.11 Run `uv run ruff check whisper_dictate/database.py` for linting
 
 ## 2. Phase 2: Update Service Files (Days 2-4)
 
