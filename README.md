@@ -1,11 +1,11 @@
 # Whisper Dictate - Global Key Binding
 
-A Python CLI for voice dictation using OpenAI Whisper API with global key binding support on Arch Linux.
+A Python CLI for voice dictation using Whisper API (OpenAI-compatible providers) with global key binding support on Arch Linux.
 
 ## Features
 
 - 🎤 **Toggle Recording**: Single key press to start/stop recording
-- 🧠 **AI Transcription**: Uses OpenAI Whisper API for accurate speech-to-text
+- 🧠 **AI Transcription**: Uses Whisper API (OpenAI, Groq, Together AI, DeepInfra, local whisper.cpp, and more) for accurate speech-to-text
 - 📋 **Clipboard Integration**: Automatically copies transcription to clipboard
 - 🔔 **System Notifications**: Visual feedback via notify-send
 - ⚡ **Fast Response**: Minimal latency for real-time usage
@@ -38,15 +38,38 @@ brew install ffmpeg
 pip install -e .
 ```
 
-### 2. Set OpenAI API Key
+### 2. Configure Your Whisper Provider
 
-Create a `.env` file in the project directory or set the environment variable:
+Create a `.env` file in the project directory (copy from `.env.example`):
 
 ```bash
-export OPENAI_API_KEY="your-api-key-here"
-# Or add to ~/.bashrc for persistence
-echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.bashrc
+cp .env.example .env
 ```
+
+Then edit `.env` with your provider settings. By default, it uses OpenAI:
+
+```bash
+WHISPER_PROVIDER=openai
+WHISPER_API_KEY="your-api-key-here"
+WHISPER_MODEL=whisper-1
+```
+
+Or use any OpenAI-compatible provider — just change the environment variables, no code changes needed:
+
+```bash
+# Example: Groq
+WHISPER_PROVIDER=groq
+WHISPER_API_KEY="your-groq-api-key"
+WHISPER_MODEL=whisper-large-v3-turbo
+
+# Example: DeepInfra
+WHISPER_PROVIDER=deepinfra
+WHISPER_API_KEY="your-deepinfra-api-key"
+WHISPER_MODEL=Whisper/whisper-large-v3
+WHISPER_BASE_URL=https://api.deepinfra.com/v1/openai
+```
+
+See `.env.example` for all supported providers and configuration options.
 
 ### 3. Add global bind to the CLI
 
@@ -387,12 +410,49 @@ whisper-dictate migrate --force
 
 ### Environment Variables
 
-Create a `.env` file in the project directory:
+#### Whisper Provider Configuration
 
-```bash
-OPENAI_API_KEY=your-api-key-here
-LOG_LEVEL=INFO
-```
+All Whisper settings are configurable via environment variables. Switch providers without touching code:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WHISPER_PROVIDER` | Provider: `openai`, `groq`, `together`, `deepinfra`, `custom` | `openai` |
+| `WHISPER_API_KEY` | API key for the selected provider | (required) |
+| `WHISPER_BASE_URL` | Custom API base URL (for `custom` provider) | Provider default |
+| `WHISPER_MODEL` | Model name to use | `whisper-1` |
+| `WHISPER_LANGUAGE` | Language code (e.g., `en`, `es`, `auto`) | `auto` |
+| `WHISPER_TEMPERATURE` | Sampling temperature (0.0-1.0) | `0.0` |
+| `WHISPER_TIMEOUT` | API request timeout in seconds | `60` |
+
+#### Supported Providers
+
+| Provider | `WHISPER_PROVIDER` | Default Model | Notes |
+|----------|-------------------|---------------|-------|
+| OpenAI | `openai` | `whisper-1` | Default provider |
+| Groq | `groq` | `whisper-large-v3-turbo` | Fast inference |
+| Together AI | `together` | `whisper-large-v3` | |
+| DeepInfra | `deepinfra` | `Whisper/whisper-large-v3` | |
+| whisper.cpp | `custom` | `whisper-large-v3` | Set `WHISPER_BASE_URL` to your server |
+| faster-whisper-server | `custom` | `large-v3` | Set `WHISPER_BASE_URL` to your server |
+
+#### Provider-Specific API Key Fallbacks
+
+If `WHISPER_API_KEY` is not set, the system falls back to provider-specific env vars:
+- `OPENAI_API_KEY` (for `openai`)
+- `GROQ_API_KEY` (for `groq`)
+- `TOGETHER_API_KEY` (for `together`)
+- `DEEPINFRA_API_KEY` (for `deepinfra`)
+
+#### Other Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `LOG_RETENTION_DAYS` | Days to keep logs | `30` |
+| `MIN_FREE_SPACE_MB` | Minimum free disk space for recording | `100` |
+| `MP3_ENABLED` | Enable/disable MP3 conversion | `true` |
+| `MP3_BITRATE` | MP3 encoding bitrate: `64k`, `128k`, `192k` | `128k` |
+| `KEEP_WAV` | Keep original WAV after MP3 conversion | `false` |
 
 ### Database Configuration
 
@@ -435,6 +495,10 @@ KEEP_WAV=false
 | 64k | Good | Smallest | Low bandwidth, voice notes |
 | 128k | Excellent | Moderate | Recommended for most users |
 | 192k | Best | Largest | High quality requirements |
+
+### Provider Examples
+
+See `.env.example` in the project root for ready-to-use configurations for all supported providers. Simply copy the block for your provider into your `.env` file.
 
 ---
 
@@ -600,7 +664,7 @@ whisper-dictate migrate --force
   - `cli.py` - Click-based CLI interface
   - `dictation.py` - Core dictation service
   - `database.py` - SQLite database operations
-  - `transcription.py` - Whisper API integration
+   - `transcription.py` - Whisper API abstraction and provider implementations
   - `notifications.py` - System notifications
   - `clipboard.py` - Clipboard integration
 - **`setup.py`** - Package installation configuration
