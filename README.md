@@ -31,10 +31,24 @@ brew install ffmpeg
 
 ## Quick Start
 
+### Package Manager
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast Python package management. Install it if you haven't already:
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+If you prefer pip, you can still use `pip install -e .` instead of `uv sync`.
+
 ### 1. Install the Package
 
 ```bash
-# Install in editable mode for development
+# Using uv (recommended)
+uv sync
+
+# Or using pip
 pip install -e .
 ```
 
@@ -555,7 +569,8 @@ i3-msg reload
 ### Dependencies Missing
 ```bash
 # Install missing Python packages
-pip install -e .
+uv sync
+# Or: pip install -e .
 
 # Install system packages
 sudo pacman -S python-pip ffmpeg portaudio
