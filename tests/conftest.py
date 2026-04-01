@@ -6,7 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Generator
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -290,55 +290,22 @@ def temp_env_vars() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def async_cleanup(request):
-    """Function-scoped fixture for async resource cleanup.
-
-    Uses pytest's request.addfinalizer() pattern to allow any pending
-    async tasks to complete after each test. This is function-scoped
-    rather than session-scoped to avoid event loop conflicts with
-    pytest-asyncio.
-    """
-    import asyncio
-    import time
-
-    def cleanup():
-        """Allow pending async tasks to complete."""
-        try:
-            loop = asyncio.get_running_loop()
-            # Schedule a small task to let pending async operations complete
-            try:
-                loop.run_until_complete(asyncio.sleep(0.01))
-            except RuntimeError:
-                # Loop already running or closed, ignore
-                pass
-        except RuntimeError:
-            # No running loop available, skip async cleanup
-            pass
-
-        # Small delay to allow task cleanup
-        time.sleep(0.01)
-
-    request.addfinalizer(cleanup)
-    return cleanup
-
-
-@pytest.fixture
 def database():
     """Provide a mock database with proper lifecycle tracking.
 
     This fixture provides a mock database that:
-    - Has all common methods as AsyncMocks
+    - Has all common methods as Mocks
     - Tracks whether close() was called
     - Can be used to verify proper cleanup
     """
-    mock_db = AsyncMock()
-    mock_db.initialize = AsyncMock()
-    mock_db.close = AsyncMock()
-    mock_db.query_logs = AsyncMock(return_value=[])
-    mock_db.cleanup_old_logs = AsyncMock(return_value=0)
-    mock_db.list_transcriptions = AsyncMock(return_value=[])
-    mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-    mock_db.search_transcripts = AsyncMock(return_value=[])
-    mock_db.delete_recording = AsyncMock(return_value=False)
-    mock_db.update_transcript = AsyncMock(return_value=False)
+    mock_db = Mock()
+    mock_db.initialize = Mock()
+    mock_db.close = Mock()
+    mock_db.query_logs = Mock(return_value=[])
+    mock_db.cleanup_old_logs = Mock(return_value=0)
+    mock_db.list_transcriptions = Mock(return_value=[])
+    mock_db.get_transcription_with_recording = Mock(return_value=None)
+    mock_db.search_transcripts = Mock(return_value=[])
+    mock_db.delete_recording = Mock(return_value=False)
+    mock_db.update_transcript = Mock(return_value=False)
     return mock_db

@@ -62,13 +62,13 @@
 
 ## 3. Phase 3: Update Tests (Days 4-5)
 
-- [ ] 3.1 Convert async pytest fixtures to synchronous fixtures in test files
-- [ ] 3.2 Remove `pytest.mark.asyncio` decorators from test functions
-- [ ] 3.3 Remove `pytest.mark.asyncio` import if present
-- [ ] 3.4 Update test assertions as needed for synchronous operations
-- [ ] 3.5 Remove any `async def test_` functions that are now sync
-- [ ] 3.6 Run `uv run pytest` to verify all tests pass
-- [ ] 3.7 Run `uv run ruff check tests/` for linting
+- [x] 3.1 Convert async pytest fixtures to synchronous fixtures in test files
+- [x] 3.2 Remove `pytest.mark.asyncio` decorators from test functions
+- [x] 3.3 Remove `pytest.mark.asyncio` import if present
+- [x] 3.4 Update test assertions as needed for synchronous operations
+- [x] 3.5 Remove any `async def test_` functions that are now sync
+- [x] 3.6 Run `uv run pytest` to verify all tests pass
+- [x] 3.7 Run `uv run ruff check tests/` for linting
 
 ## 4. Phase 4: Remove aiosqlite Dependency (Day 5)
 

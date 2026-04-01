@@ -10,7 +10,7 @@ Fix: Added `asyncio.run(db.close())` in `finally` blocks for all four history co
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -47,10 +47,10 @@ def temp_db():
 @pytest.fixture
 def mock_database_with_data():
     """Create a mock database with sample transcription data."""
-    mock_db = AsyncMock()
+    mock_db = Mock()
 
     # Sample transcriptions for list/search
-    mock_db.list_transcriptions = AsyncMock(
+    mock_db.list_transcriptions = Mock(
         return_value=[
             {
                 "id": 1,
@@ -78,7 +78,7 @@ def mock_database_with_data():
     )
 
     # Single transcription for show
-    mock_db.get_transcription_with_recording = AsyncMock(
+    mock_db.get_transcription_with_recording = Mock(
         return_value={
             "id": 1,
             "text": "This is a test transcription about a meeting.",
@@ -93,7 +93,7 @@ def mock_database_with_data():
     )
 
     # Search results
-    mock_db.search_transcripts = AsyncMock(
+    mock_db.search_transcripts = Mock(
         return_value=[
             {
                 "id": 1,
@@ -110,11 +110,11 @@ def mock_database_with_data():
     )
 
     # Delete result
-    mock_db.delete_recording = AsyncMock(return_value=True)
+    mock_db.delete_recording = Mock(return_value=True)
 
     # Initialize and close methods
-    mock_db.initialize = AsyncMock()
-    mock_db.close = AsyncMock()
+    mock_db.initialize = Mock()
+    mock_db.close = Mock()
 
     return mock_db
 
@@ -122,14 +122,14 @@ def mock_database_with_data():
 @pytest.fixture
 def mock_database_empty():
     """Create a mock database with no transcriptions."""
-    mock_db = AsyncMock()
+    mock_db = Mock()
 
-    mock_db.list_transcriptions = AsyncMock(return_value=[])
-    mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-    mock_db.search_transcripts = AsyncMock(return_value=[])
-    mock_db.delete_recording = AsyncMock(return_value=False)
-    mock_db.initialize = AsyncMock()
-    mock_db.close = AsyncMock()
+    mock_db.list_transcriptions = Mock(return_value=[])
+    mock_db.get_transcription_with_recording = Mock(return_value=None)
+    mock_db.search_transcripts = Mock(return_value=[])
+    mock_db.delete_recording = Mock(return_value=False)
+    mock_db.initialize = Mock()
+    mock_db.close = Mock()
 
     return mock_db
 
@@ -137,14 +137,14 @@ def mock_database_empty():
 @pytest.fixture
 def mock_database_not_found():
     """Create a mock database that returns None for non-existent ID."""
-    mock_db = AsyncMock()
+    mock_db = Mock()
 
-    mock_db.list_transcriptions = AsyncMock(return_value=[])
-    mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-    mock_db.search_transcripts = AsyncMock(return_value=[])
-    mock_db.delete_recording = AsyncMock(return_value=False)
-    mock_db.initialize = AsyncMock()
-    mock_db.close = AsyncMock()
+    mock_db.list_transcriptions = Mock(return_value=[])
+    mock_db.get_transcription_with_recording = Mock(return_value=None)
+    mock_db.search_transcripts = Mock(return_value=[])
+    mock_db.delete_recording = Mock(return_value=False)
+    mock_db.initialize = Mock()
+    mock_db.close = Mock()
 
     return mock_db
 
@@ -432,13 +432,13 @@ class TestDatabaseConnectionLeak:
         This simulates the real-world scenario where a user runs multiple
         history commands in sequence.
         """
-        mock_db = AsyncMock()
-        mock_db.list_transcriptions = AsyncMock(return_value=[])
-        mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-        mock_db.search_transcripts = AsyncMock(return_value=[])
-        mock_db.delete_recording = AsyncMock(return_value=False)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db = Mock()
+        mock_db.list_transcriptions = Mock(return_value=[])
+        mock_db.get_transcription_with_recording = Mock(return_value=None)
+        mock_db.search_transcripts = Mock(return_value=[])
+        mock_db.delete_recording = Mock(return_value=False)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
@@ -462,9 +462,9 @@ class TestDatabaseConnectionLeak:
 
     def test_connection_closed_after_exception(self, cli_runner):
         """Verify connection is closed even when command raises exception."""
-        mock_db = AsyncMock()
-        mock_db.initialize = AsyncMock(side_effect=Exception("Database error"))
-        mock_db.close = AsyncMock()
+        mock_db = Mock()
+        mock_db.initialize = Mock(side_effect=Exception("Database error"))
+        mock_db.close = Mock()
 
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db
@@ -485,13 +485,13 @@ class TestDatabaseCloseWithRealAsync:
 
     def test_history_list_awaits_db_close(self, cli_runner):
         """Verify history list properly awaits database close."""
-        mock_db = AsyncMock()
-        mock_db.list_transcriptions = AsyncMock(return_value=[])
+        mock_db = Mock()
+        mock_db.list_transcriptions = Mock(return_value=[])
 
         # Track if close was awaited
         close_called = []
 
-        async def mock_close():
+        def mock_close():
             close_called.append(True)
 
         mock_db.close = mock_close
@@ -506,9 +506,9 @@ class TestDatabaseCloseWithRealAsync:
 
     def test_all_history_commands_close_connection(self, cli_runner):
         """Verify all four history commands close database connection."""
-        mock_db = AsyncMock()
-        mock_db.list_transcriptions = AsyncMock(return_value=[])
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db = Mock()
+        mock_db.list_transcriptions = Mock(return_value=[])
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Test",
@@ -517,8 +517,8 @@ class TestDatabaseCloseWithRealAsync:
                 "recording_id": 1,
             }
         )
-        mock_db.search_transcripts = AsyncMock(return_value=[])
-        mock_db.delete_recording = AsyncMock(return_value=True)
+        mock_db.search_transcripts = Mock(return_value=[])
+        mock_db.delete_recording = Mock(return_value=True)
 
         commands = [
             (["history", "list"], mock_db.list_transcriptions),
@@ -547,10 +547,10 @@ class TestHistoryUpdate:
     @pytest.fixture
     def mock_database_with_update(self):
         """Create a mock database that supports update."""
-        mock_db = AsyncMock()
+        mock_db = Mock()
 
         # Transcript for update
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -565,23 +565,23 @@ class TestHistoryUpdate:
         )
 
         # Update result
-        mock_db.update_transcript = AsyncMock(return_value=True)
+        mock_db.update_transcript = Mock(return_value=True)
 
         # Initialize and close methods
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         return mock_db
 
     @pytest.fixture
     def mock_database_not_found(self):
         """Create a mock database that returns None for non-existent ID."""
-        mock_db = AsyncMock()
+        mock_db = Mock()
 
-        mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-        mock_db.update_transcript = AsyncMock(return_value=False)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.get_transcription_with_recording = Mock(return_value=None)
+        mock_db.update_transcript = Mock(return_value=False)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         return mock_db
 
@@ -658,9 +658,9 @@ class TestHistoryUpdate:
         from click.testing import CliRunner
 
         cli_runner = CliRunner()
-        mock_db = AsyncMock()
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db = Mock()
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
             mock_get_db.return_value = mock_db

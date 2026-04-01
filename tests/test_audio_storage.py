@@ -3,7 +3,7 @@
 import tempfile
 from pathlib import Path
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 
 from whisper_dictate.audio_storage import (
     AudioStorage,
@@ -34,7 +34,7 @@ def audio_storage(temp_recordings_dir: Path) -> AudioStorage:
 def mock_db_with_recordings():
     """Create a mock database with some recordings."""
     mock_db = Mock()
-    mock_db.list_recordings = AsyncMock(
+    mock_db.list_recordings = Mock(
         return_value=[
             {"id": 1, "file_path": "2024/03/14/recording1.wav"},
             {"id": 2, "file_path": "2024/03/15/recording2.wav"},
@@ -47,7 +47,7 @@ def mock_db_with_recordings():
 def mock_db_empty():
     """Create a mock database with no recordings."""
     mock_db = Mock()
-    mock_db.list_recordings = AsyncMock(return_value=[])
+    mock_db.list_recordings = Mock(return_value=[])
     return mock_db
 
 

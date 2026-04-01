@@ -8,7 +8,7 @@ These tests verify that the decorator properly:
 5. Preserves the original function's metadata (name and docstring)
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import Mock, patch
 
 import click
 import pytest
@@ -20,9 +20,9 @@ from whisper_dictate.cli_helpers import with_database
 @pytest.fixture
 def mock_database():
     """Create a mock database with all required methods."""
-    mock_db = AsyncMock()
-    mock_db.initialize = AsyncMock()
-    mock_db.close = AsyncMock()
+    mock_db = Mock()
+    mock_db.initialize = Mock()
+    mock_db.close = Mock()
     return mock_db
 
 
@@ -288,13 +288,13 @@ class TestWithDatabaseEdgeCases:
         original_initialize = mock_database.initialize
         original_close = mock_database.close
 
-        async def tracked_initialize():
+        def tracked_initialize():
             call_sequence.append("initialize")
-            return await original_initialize()
+            return original_initialize()
 
-        async def tracked_close():
+        def tracked_close():
             call_sequence.append("close")
-            return await original_close()
+            return original_close()
 
         mock_database.initialize = tracked_initialize
         mock_database.close = tracked_close
