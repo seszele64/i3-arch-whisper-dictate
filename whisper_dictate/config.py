@@ -23,6 +23,7 @@ class WhisperProvider(str, Enum):
     OPENAI = "openai"
     GROQ = "groq"
     TOGETHER = "together"
+    DEEPINFRA = "deepinfra"
     LOCAL = "local"
     CUSTOM = "custom"
 
@@ -40,6 +41,10 @@ PROVIDER_DEFAULTS: dict[WhisperProvider, dict] = {
     WhisperProvider.TOGETHER: {
         "base_url": "https://api.together.xyz/v1",
         "env_var": "TOGETHER_API_KEY",
+    },
+    WhisperProvider.DEEPINFRA: {
+        "base_url": "https://api.deepinfra.com/v1/openai",
+        "env_var": "DEEPINFRA_API_KEY",
     },
     WhisperProvider.LOCAL: {
         "base_url": "http://localhost:8000/v1",
@@ -165,7 +170,7 @@ class WhisperConfig(BaseModel):
 
     provider: str = Field(
         default="openai",
-        description="Provider type: openai, groq, together, local, custom",
+        description="Provider type: openai, groq, together, deepinfra, local, custom",
     )
     api_key: str = Field(
         default="",
@@ -203,7 +208,7 @@ def _load_whisper_config_from_env() -> WhisperConfig:
     """Load WhisperConfig from WHISPER_* environment variables.
 
     Env vars supported:
-    - WHISPER_PROVIDER: Provider type (openai, groq, together, local, custom). Default: "openai"
+    - WHISPER_PROVIDER: Provider type (openai, groq, together, deepinfra, local, custom). Default: "openai"
     - WHISPER_API_KEY: Explicit API key. Default: "" (falls back to provider-specific env var)
     - WHISPER_BASE_URL: Custom API base URL. Default: None (uses provider default)
     - WHISPER_MODEL: Model name. Default: "whisper-1"
