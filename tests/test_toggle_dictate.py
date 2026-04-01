@@ -20,7 +20,7 @@ class TestTranscribeAudio:
         mock_config = MagicMock()
         mock_config.openai.model = "whisper-1"
 
-        # Create mock database with properly configured async methods
+        # Create mock database with properly configured sync methods
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
         mock_db.initialize = Mock()

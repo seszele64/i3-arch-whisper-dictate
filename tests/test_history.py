@@ -4,7 +4,7 @@ These tests verify that the bug fix for database connection not being closed
 properly is working. The original bug caused `whisper-dictate history` commands
 to hang after execution because database connections weren't being closed.
 
-Fix: Added `asyncio.run(db.close())` in `finally` blocks for all four history commands.
+Fix: Added `db.close()` in `finally` blocks for all four history commands.
 """
 
 import os
@@ -158,7 +158,7 @@ class TestHistoryListNoHang:
         """Verify history list command exits cleanly with data.
 
         This test verifies the bug fix: commands should not hang after execution.
-        The fix adds asyncio.run(db.close()) in the finally block.
+        The fix adds db.close() in the finally block.
         """
         # Patch at the database module level since CLI imports it locally
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -477,10 +477,10 @@ class TestDatabaseConnectionLeak:
 
 
 class TestDatabaseCloseWithRealAsync:
-    """Test that db.close() is properly awaited in the finally block.
+    """Test that db.close() is properly called in the finally block.
 
-    These tests verify the actual async behavior - ensuring that the
-    close() method is properly awaited and completes.
+    These tests verify the actual behavior - ensuring that the
+    close() method is properly called and completes.
     """
 
     def test_history_list_awaits_db_close(self, cli_runner):
@@ -501,7 +501,7 @@ class TestDatabaseCloseWithRealAsync:
 
             cli_runner.invoke(cli, ["history", "list"])
 
-            # The fix uses asyncio.run(db.close()) which should complete
+            # The fix uses db.close() which should complete
             assert len(close_called) >= 1 or mock_db.close.called
 
     def test_all_history_commands_close_connection(self, cli_runner):

@@ -64,7 +64,7 @@ class TestUpdateTranscript:
         # Directly test the database method with mock
         mock_database_with_update.update_transcript = MagicMock(return_value=True)
 
-        # Call the async method
+        # Call the method
         result = mock_database_with_update.update_transcript(
             transcript_id=1,
             text="Updated text",
@@ -76,7 +76,7 @@ class TestUpdateTranscript:
 
     def test_update_transcript_text_and_language_mock(self, mock_database_with_update):
         """Test updating transcript text and language using mock."""
-        # Call the async method
+        # Call the method
         result = mock_database_with_update.update_transcript(
             transcript_id=1,
             text="Updated text in Spanish",
