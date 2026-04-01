@@ -319,11 +319,11 @@ class TestWithDatabaseEdgeCases:
             )
 
 
-class TestWithDatabaseAsyncMethods:
-    """Tests for async method handling in the decorator."""
+class TestWithDatabaseSyncMethods:
+    """Tests for sync method handling in the decorator."""
 
-    def test_with_database_awaits_initialize(self, mock_database):
-        """Verify the decorator awaits db.initialize()."""
+    def test_with_database_calls_initialize(self, mock_database):
+        """Verify the decorator calls db.initialize()."""
 
         @click.command()
         @with_database
@@ -337,11 +337,11 @@ class TestWithDatabaseAsyncMethods:
             runner = CliRunner()
             runner.invoke(test_command)
 
-            # Verify initialize is an AsyncMock (properly awaited)
+            # Verify initialize is called
             assert mock_database.initialize.called
 
-    def test_with_database_awaits_close(self, mock_database):
-        """Verify the decorator awaits db.close()."""
+    def test_with_database_calls_close(self, mock_database):
+        """Verify the decorator calls db.close()."""
 
         @click.command()
         @with_database
@@ -355,5 +355,5 @@ class TestWithDatabaseAsyncMethods:
             runner = CliRunner()
             runner.invoke(test_command)
 
-            # Verify close is an AsyncMock (properly awaited)
+            # Verify close is called
             assert mock_database.close.called
