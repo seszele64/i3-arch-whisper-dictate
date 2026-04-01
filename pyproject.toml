@@ -1,8 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "whisper-dictate"
 version = "0.1.0"
-description = "Voice dictation tool with Whisper API integration"
+description = "Voice dictation using OpenAI Whisper API with strong typing and logging"
 requires-python = ">=3.11"
+authors = [{name = "whisper-dictate contributors"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "openai>=1.0.0",
     "pydantic>=2.0.0",
@@ -14,6 +27,9 @@ dependencies = [
     "aiosqlite>=0.20.0",
     "pytest-timeout>=2.2.0",
 ]
+
+[project.scripts]
+whisper-dictate = "whisper_dictate.cli:cli"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
