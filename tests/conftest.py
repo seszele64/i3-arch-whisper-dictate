@@ -1,15 +1,21 @@
-import sys
-from pathlib import Path
-
-# Add project root to path for toggle_dictate module
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 """Test configuration and fixtures for whisper-dictate."""
 
+import atexit
 import os
+import sys
+import tempfile
+from pathlib import Path
+from typing import Generator
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+
+from whisper_dictate.config import AppConfig, AudioConfig, OpenAIConfig  # noqa: E402
+from whisper_dictate.transcription import TranscriptionResult  # noqa: E402
+
+
+# Add project root to path for toggle_dictate module
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,6 +31,12 @@ def mock_cli_setup():
 
         mock_config = Mock()
         mock_config.openai.api_key = "test-api-key"
+        mock_config.openai.provider = "openai"
+        mock_config.openai.base_url = None
+        mock_config.openai.model = "whisper-1"
+        mock_config.openai.timeout = 30.0
+        mock_config.openai.language = None
+        mock_config.openai.temperature = 0.0
         mock_config.audio.sample_rate = 16000
         mock_config.audio.channels = 1
         mock_config.audio.duration = 1.0
@@ -35,16 +47,6 @@ def mock_cli_setup():
         mock_load_config.return_value = mock_config
 
         yield
-
-
-import atexit
-import sys
-import tempfile
-from pathlib import Path
-from typing import Generator
-
-from whisper_dictate.config import AppConfig, AudioConfig, OpenAIConfig
-from whisper_dictate.transcription import TranscriptionResult
 
 
 # Session-scoped fixture to patch sounddevice/soundfile before any imports
@@ -114,7 +116,6 @@ atexit.register(_cleanup_sounddevice)
 def reset_persistent_notification_state():
     """Reset PersistentNotification class variables before each test."""
     import whisper_dictate.notifications as notifications_module
-    from unittest.mock import patch
 
     # Store original values
     original_time = notifications_module.PersistentNotification._last_operation_time
