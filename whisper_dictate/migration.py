@@ -65,14 +65,14 @@ class MigrationManager:
         self._backup_dir = BACKUP_DIR
         self._migration_log: list[dict[str, Any]] = []
 
-    async def initialize(self) -> None:
+    def initialize(self) -> None:
         """Initialize the database for migration.
 
         Raises:
             MigrationError: If database initialization fails
         """
         try:
-            await self._db.initialize()
+            self._db.initialize()
             logger.info("Migration manager initialized")
         except Exception as e:
             raise MigrationError(f"Failed to initialize database: {e}")
@@ -89,7 +89,7 @@ class MigrationManager:
             "audio_file": LEGACY_AUDIO_FILE.exists(),
         }
 
-    async def is_migration_completed(self, force: bool = False) -> bool:
+    def is_migration_completed(self, force: bool = False) -> bool:
         """Check if migration has already been completed.
 
         Args:
@@ -102,7 +102,7 @@ class MigrationManager:
             return False
 
         try:
-            status = await self._db.get_state(MIGRATION_STATUS_KEY)
+            status = self._db.get_state(MIGRATION_STATUS_KEY)
             if status and isinstance(status, dict):
                 return status.get("status") == MIGRATION_COMPLETED
         except Exception as e:
@@ -110,7 +110,7 @@ class MigrationManager:
 
         return False
 
-    async def run_migration(self, force: bool = False) -> dict[str, Any]:
+    def run_migration(self, force: bool = False) -> dict[str, Any]:
         """Run the complete migration process.
 
         Args:
@@ -126,7 +126,7 @@ class MigrationManager:
         self._log("INFO", "Starting migration process")
 
         # Check if already completed
-        if await self.is_migration_completed(force=force):
+        if self.is_migration_completed(force=force):
             if not force:
                 self._log("INFO", "Migration already completed, skipping")
                 return {
@@ -143,7 +143,7 @@ class MigrationManager:
 
         if not has_legacy:
             self._log("INFO", "No legacy files found, nothing to migrate")
-            await self._set_migration_status(MIGRATION_COMPLETED)
+            self._set_migration_status(MIGRATION_COMPLETED)
             return {
                 "success": True,
                 "skipped": True,
@@ -153,12 +153,10 @@ class MigrationManager:
         self._log("INFO", f"Found legacy files: {legacy_files}")
 
         # Create backup - MUST succeed or abort migration
-        backup_path = await self._create_backup(legacy_files)
+        backup_path = self._create_backup(legacy_files)
         if not backup_path:
             self._log("ERROR", "Failed to create backup, aborting migration")
-            await self._set_migration_status(
-                MIGRATION_FAILED, error="Backup creation failed"
-            )
+            self._set_migration_status(MIGRATION_FAILED, error="Backup creation failed")
             raise MigrationError(
                 "Backup creation failed, aborting migration to prevent data loss"
             )
@@ -166,23 +164,23 @@ class MigrationManager:
 
         # Perform migration in a transaction for atomicity
         try:
-            async with self._db.transaction():
+            with self._db.transaction():
                 # Migrate state
-                await self._migrate_state(legacy_files)
+                self._migrate_state(legacy_files)
 
                 # Migrate PID if recording is in progress
-                await self._migrate_pid(legacy_files)
+                self._migrate_pid(legacy_files)
 
                 # Mark as completed
-                await self._set_migration_status(MIGRATION_COMPLETED)
+                self._set_migration_status(MIGRATION_COMPLETED)
 
             self._log("INFO", "Migration completed successfully")
 
             # Verify migration after transaction commits
-            await self._verify_migration(legacy_files)
+            self._verify_migration(legacy_files)
 
             # Remove legacy files after successful migration and verification
-            await self._remove_legacy_files(legacy_files)
+            self._remove_legacy_files(legacy_files)
 
             return {
                 "success": True,
@@ -195,12 +193,12 @@ class MigrationManager:
             self._log("ERROR", f"Migration failed: {e}")
 
             # Attempt rollback
-            await self._rollback(backup_path, legacy_files)
+            self._rollback(backup_path, legacy_files)
 
-            await self._set_migration_status(MIGRATION_FAILED, error=str(e))
+            self._set_migration_status(MIGRATION_FAILED, error=str(e))
             raise MigrationError(f"Migration failed: {e}")
 
-    async def _create_backup(self, legacy_files: dict[str, bool]) -> Optional[Path]:
+    def _create_backup(self, legacy_files: dict[str, bool]) -> Optional[Path]:
         """Create backup of legacy files.
 
         Args:
@@ -240,7 +238,7 @@ class MigrationManager:
             self._log("ERROR", f"Backup failed: {e}")
             return None
 
-    async def _migrate_state(self, legacy_files: dict[str, bool]) -> None:
+    def _migrate_state(self, legacy_files: dict[str, bool]) -> None:
         """Migrate state file data to database.
 
         Args:
@@ -267,14 +265,14 @@ class MigrationManager:
                     pass
 
             # Store in database state table
-            await self._db.set_state("legacy_recording_state", state_data)
+            self._db.set_state("legacy_recording_state", state_data)
             self._log("INFO", "Migrated recording state to database")
 
         except Exception as e:
             self._log("ERROR", f"Failed to migrate state: {e}")
             raise
 
-    async def _migrate_pid(self, legacy_files: dict[str, bool]) -> None:
+    def _migrate_pid(self, legacy_files: dict[str, bool]) -> None:
         """Migrate PID file data to database.
 
         Args:
@@ -312,14 +310,14 @@ class MigrationManager:
                     pid_data["process_exists"] = False
 
             # Store in database state table
-            await self._db.set_state("legacy_pid_state", pid_data)
+            self._db.set_state("legacy_pid_state", pid_data)
             self._log("INFO", f"Migrated PID data to database (PID: {pid_value})")
 
         except Exception as e:
             self._log("ERROR", f"Failed to migrate PID: {e}")
             raise
 
-    async def _rollback(
+    def _rollback(
         self, backup_path: Optional[Path], legacy_files: dict[str, bool]
     ) -> None:
         """Attempt to rollback migration.
@@ -332,8 +330,8 @@ class MigrationManager:
 
         # Delete migrated state from database
         try:
-            await self._db.delete_state("legacy_recording_state")
-            await self._db.delete_state("legacy_pid_state")
+            self._db.delete_state("legacy_recording_state")
+            self._db.delete_state("legacy_pid_state")
             self._log("INFO", "Rolled back database state")
         except Exception as e:
             self._log("ERROR", f"Failed to rollback database state: {e}")
@@ -342,9 +340,7 @@ class MigrationManager:
         if backup_path:
             self._log("INFO", f"Backup preserved at: {backup_path}")
 
-    async def _set_migration_status(
-        self, status: str, error: Optional[str] = None
-    ) -> None:
+    def _set_migration_status(self, status: str, error: Optional[str] = None) -> None:
         """Set migration status in database.
 
         Args:
@@ -360,9 +356,9 @@ class MigrationManager:
         if error:
             status_data["error"] = error
 
-        await self._db.set_state(MIGRATION_STATUS_KEY, status_data)
+        self._db.set_state(MIGRATION_STATUS_KEY, status_data)
 
-    async def _verify_migration(self, legacy_files: dict[str, bool]) -> None:
+    def _verify_migration(self, legacy_files: dict[str, bool]) -> None:
         """Verify migration succeeded by reading back stored data.
 
         Args:
@@ -376,7 +372,7 @@ class MigrationManager:
         try:
             # Verify recording state
             if legacy_files.get("state_file"):
-                state = await self._db.get_state("legacy_recording_state")
+                state = self._db.get_state("legacy_recording_state")
                 if not state or not isinstance(state, dict):
                     raise MigrationError(
                         "Verification failed: legacy_recording_state not found"
@@ -389,7 +385,7 @@ class MigrationManager:
 
             # Verify PID state
             if legacy_files.get("pid_file"):
-                pid_state = await self._db.get_state("legacy_pid_state")
+                pid_state = self._db.get_state("legacy_pid_state")
                 if not pid_state or not isinstance(pid_state, dict):
                     raise MigrationError(
                         "Verification failed: legacy_pid_state not found"
@@ -401,7 +397,7 @@ class MigrationManager:
                 self._log("INFO", "PID state verification passed")
 
             # Verify migration status
-            status = await self._db.get_state(MIGRATION_STATUS_KEY)
+            status = self._db.get_state(MIGRATION_STATUS_KEY)
             if not status or status.get("status") != MIGRATION_COMPLETED:
                 raise MigrationError(
                     "Verification failed: migration status not completed"
@@ -414,7 +410,7 @@ class MigrationManager:
         except Exception as e:
             raise MigrationError(f"Verification failed: {e}")
 
-    async def _remove_legacy_files(self, legacy_files: dict[str, bool]) -> None:
+    def _remove_legacy_files(self, legacy_files: dict[str, bool]) -> None:
         """Remove legacy files after successful migration.
 
         Args:
@@ -460,16 +456,16 @@ class MigrationManager:
         """
         return self._migration_log.copy()
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """Close the database connection.
 
         This should be called after migration is complete to properly
         release database resources.
         """
-        await self._db.close()
+        self._db.close()
 
 
-async def run_migration(force: bool = False) -> dict[str, Any]:
+def run_migration(force: bool = False) -> dict[str, Any]:
     """Run state migration.
 
     This is a convenience function for CLI usage.
@@ -485,13 +481,13 @@ async def run_migration(force: bool = False) -> dict[str, Any]:
     """
     manager = MigrationManager()
     try:
-        await manager.initialize()
-        return await manager.run_migration(force=force)
+        manager.initialize()
+        return manager.run_migration(force=force)
     finally:
-        await manager.close()
+        manager.close()
 
 
-async def check_migration_status() -> dict[str, Any]:
+def check_migration_status() -> dict[str, Any]:
     """Check migration status.
 
     Returns:
@@ -499,10 +495,10 @@ async def check_migration_status() -> dict[str, Any]:
     """
     manager = MigrationManager()
     try:
-        await manager.initialize()
+        manager.initialize()
 
         legacy_files = manager.detect_legacy_files()
-        is_completed = await manager.is_migration_completed()
+        is_completed = manager.is_migration_completed()
 
         return {
             "legacy_files": legacy_files,
@@ -511,4 +507,4 @@ async def check_migration_status() -> dict[str, Any]:
             "migration_needed": any(legacy_files.values()) and not is_completed,
         }
     finally:
-        await manager.close()
+        manager.close()

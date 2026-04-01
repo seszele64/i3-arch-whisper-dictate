@@ -1,6 +1,5 @@
 """Command-line interface for whisper-dictate."""
 
-import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -61,7 +60,7 @@ def setup_logging(level: str, enable_db_logging: bool = True) -> None:
             db = get_database(db_config)
 
             # Initialize database synchronously for logging
-            asyncio.run(db.initialize())
+            db.initialize()
 
             # Add database handler
             db_handler = DatabaseLogHandler(database=db)
@@ -71,7 +70,7 @@ def setup_logging(level: str, enable_db_logging: bool = True) -> None:
 
             # Run log retention cleanup
             retention_days = db_config.log_retention_days
-            deleted = asyncio.run(db.cleanup_old_logs(retention_days))
+            deleted = db.cleanup_old_logs(retention_days)
             if deleted > 0:
                 root_logger.info(f"Cleaned up {deleted} old log entries")
 
@@ -195,7 +194,7 @@ def logs() -> None:
     "--limit", type=int, default=100, help="Maximum number of logs to display"
 )
 @with_database
-async def list_logs(
+def list_logs(
     ctx: click.Context,
     level: Optional[str],
     source: Optional[str],
@@ -216,7 +215,7 @@ async def list_logs(
     db = ctx.obj["db"]
 
     try:
-        logs = await db.query_logs(
+        logs = db.query_logs(
             level=level,
             source=source,
             from_time=from_time,
@@ -278,7 +277,7 @@ async def list_logs(
     help="Export format",
 )
 @with_database
-async def export_logs(
+def export_logs(
     ctx: click.Context,
     filename: str,
     level: Optional[str],
@@ -315,7 +314,7 @@ async def export_logs(
                 return
 
         # Get all logs (no limit for export)
-        logs = await db.query_logs(
+        logs = db.query_logs(
             level=level,
             source=source,
             from_time=from_time,
@@ -355,7 +354,7 @@ async def export_logs(
     help="Delete logs older than N days (default: use configured retention)",
 )
 @with_database
-async def cleanup_logs(ctx: click.Context, days: Optional[int]) -> None:
+def cleanup_logs(ctx: click.Context, days: Optional[int]) -> None:
     """Clean up old logs based on retention policy.
 
     Examples:
@@ -372,7 +371,7 @@ async def cleanup_logs(ctx: click.Context, days: Optional[int]) -> None:
         else:
             retention_days = days
 
-        deleted = await db.cleanup_old_logs(retention_days)
+        deleted = db.cleanup_old_logs(retention_days)
 
         click.echo(f"Cleaned up {deleted} log entries older than {retention_days} days")
 
@@ -400,7 +399,7 @@ def history() -> None:
 )
 @click.option("--date", help="Filter by date (YYYY-MM-DD format)")
 @with_database
-async def list_history(ctx: click.Context, limit: int, date: Optional[str]) -> None:
+def list_history(ctx: click.Context, limit: int, date: Optional[str]) -> None:
     """List recent transcriptions with pagination.
 
     Examples:
@@ -411,7 +410,7 @@ async def list_history(ctx: click.Context, limit: int, date: Optional[str]) -> N
     db = ctx.obj["db"]
 
     try:
-        transcriptions = await db.list_transcriptions(limit=limit, date=date)
+        transcriptions = db.list_transcriptions(limit=limit, date=date)
 
         if not transcriptions:
             click.echo("No transcriptions found.")
@@ -454,7 +453,7 @@ async def list_history(ctx: click.Context, limit: int, date: Optional[str]) -> N
 @click.argument("transcript_id", type=int)
 @click.option("--audio", is_flag=True, help="Show audio file path")
 @with_database
-async def show_history(ctx: click.Context, transcript_id: int, audio: bool) -> None:
+def show_history(ctx: click.Context, transcript_id: int, audio: bool) -> None:
     """Show full details of a transcription by ID.
 
     Examples:
@@ -467,7 +466,7 @@ async def show_history(ctx: click.Context, transcript_id: int, audio: bool) -> N
     db_config = DatabaseConfig()
 
     try:
-        transcription = await db.get_transcription_with_recording(transcript_id)
+        transcription = db.get_transcription_with_recording(transcript_id)
 
         if not transcription:
             click.echo(
@@ -532,7 +531,7 @@ async def show_history(ctx: click.Context, transcript_id: int, audio: bool) -> N
     "--limit", type=int, default=20, help="Maximum number of results to display"
 )
 @with_database
-async def search_history(ctx: click.Context, query: str, limit: int) -> None:
+def search_history(ctx: click.Context, query: str, limit: int) -> None:
     """Search transcriptions by text (case-insensitive).
 
     Examples:
@@ -542,7 +541,7 @@ async def search_history(ctx: click.Context, query: str, limit: int) -> None:
     db = ctx.obj["db"]
 
     try:
-        results = await db.search_transcripts(query, limit=limit)
+        results = db.search_transcripts(query, limit=limit)
 
         if not results:
             click.echo(f"No transcriptions found matching: '{query}'")
@@ -606,7 +605,7 @@ def delete_history(ctx: click.Context, transcript_id: int, confirm_yes: bool) ->
 
     try:
         # First get the transcription to verify it exists and get audio path
-        transcription = asyncio.run(db.get_transcription_with_recording(transcript_id))
+        transcription = db.get_transcription_with_recording(transcript_id)
 
         if not transcription:
             click.echo(
@@ -642,7 +641,7 @@ def delete_history(ctx: click.Context, transcript_id: int, confirm_yes: bool) ->
             audio_path = audio_storage.get_audio_path(transcription["file_path"])
 
         recording_id = transcription.get("recording_id")
-        deleted = asyncio.run(db.delete_recording(recording_id))
+        deleted = db.delete_recording(recording_id)
 
         if deleted:
             # Also delete the audio file if it exists
@@ -680,7 +679,7 @@ def update_history(
 
     try:
         # First get the current transcript to show old vs new
-        current = asyncio.run(db.get_transcription_with_recording(transcript_id))
+        current = db.get_transcription_with_recording(transcript_id)
 
         if not current:
             click.echo(
@@ -713,7 +712,7 @@ def update_history(
             return
 
         # Perform the update
-        success = asyncio.run(db.update_transcript(transcript_id, text, language))
+        success = db.update_transcript(transcript_id, text, language)
 
         if success:
             click.echo("✅ Updated transcription #{0}".format(transcript_id))
@@ -756,7 +755,7 @@ def audio() -> None:
     help="Actually delete the orphaned files (default: False)",
 )
 @with_database
-async def cleanup_audio(ctx: click.Context, dry_run: bool, confirm: bool) -> None:
+def cleanup_audio(ctx: click.Context, dry_run: bool, confirm: bool) -> None:
     """Clean up orphaned audio files not referenced in the database.
 
     Orphaned files are audio files that exist in the recordings directory
@@ -857,8 +856,6 @@ def migrate(force: bool, status: bool) -> None:
         whisper-dictate migrate --force
         whisper-dictate migrate --status
     """
-    import asyncio
-
     from whisper_dictate.migration import (
         MigrationError,
         check_migration_status,
@@ -868,7 +865,7 @@ def migrate(force: bool, status: bool) -> None:
     try:
         if status:
             # Just check and display status
-            result = asyncio.run(check_migration_status())
+            result = check_migration_status()
 
             click.echo("Migration Status:")
             click.echo("=" * 40)
@@ -894,7 +891,7 @@ def migrate(force: bool, status: bool) -> None:
         # Run migration
         click.echo("Starting migration...")
 
-        result = asyncio.run(run_migration(force=force))
+        result = run_migration(force=force)
 
         if result.get("skipped"):
             click.echo(f"⚠️  {result['message']}")

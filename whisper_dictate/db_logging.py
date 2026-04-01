@@ -4,7 +4,6 @@ Provides a custom logging handler that writes log entries to the SQLite database
 in addition to file-based logging. This enables structured log querying and filtering.
 """
 
-import asyncio
 import logging
 import sqlite3
 from typing import Any, Optional
@@ -43,87 +42,27 @@ class DatabaseLogHandler(logging.Handler):
         self._config = config
         self._source_prefix = source_prefix
         self._initialized = False
-        self._init_task: Optional[asyncio.Task] = None
 
     def _ensure_initialized(self) -> None:
-        """Ensure database is initialized (synchronous wrapper)."""
-        if not self._initialized and self._init_task is None:
-            # Will be initialized asynchronously when emit is first called
-            pass
-
-    async def _initialize_async(self) -> None:
-        """Initialize the database connection asynchronously."""
-        if self._initialized:
-            return
-
-        if self._database is None:
-            if self._config is None:
-                self._config = DatabaseConfig()
-            self._database = get_database(self._config)
-            await self._database.initialize()
-
-        self._initialized = True
+        """Ensure database is initialized synchronously."""
+        if not self._initialized:
+            if self._database is None:
+                if self._config is None:
+                    self._config = DatabaseConfig()
+                self._database = get_database(self._config)
+            self._database.initialize()
+            self._initialized = True
 
     def emit(self, record: logging.LogRecord) -> None:
         """Emit a log record to the database.
 
-        This method schedules the actual database write asynchronously
-        to avoid blocking the logging thread.
-
-        Args:
-            record: Log record to emit
-        """
-        # Schedule async write if not already done
-        if not self._initialized:
-            if self._init_task is None:
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        self._init_task = loop.create_task(self._initialize_async())
-                    else:
-                        # Synchronous context - initialize immediately
-                        asyncio.run(self._initialize_async())
-                        self._initialized = True
-                except RuntimeError:
-                    # No event loop - will initialize on next async call
-                    return
-
-            if self._init_task and not self._init_task.done():
-                # Add callback to write log after initialization
-                self._init_task.add_done_callback(lambda _: self._emit_async(record))
-                return
-
-        # Already initialized - write directly
-        if self._initialized:
-            self._emit_async(record)
-
-    def _emit_async(self, record: logging.LogRecord) -> None:
-        """Emit log record asynchronously.
+        This method writes logs synchronously.
 
         Args:
             record: Log record to emit
         """
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self._write_log(record))
-            else:
-                asyncio.run(self._write_log(record))
-        except RuntimeError:
-            # Cannot get event loop - skip database logging
-            pass
-
-    async def _write_log(self, record: logging.LogRecord) -> None:
-        """Write log record to database.
-
-        Args:
-            record: Log record to write
-        """
-        if self._database is None:
-            return
-
-        try:
-            # Get the source module name
+            self._ensure_initialized()
             source = (
                 f"{self._source_prefix}.{record.module}"
                 if record.module
@@ -140,7 +79,7 @@ class DatabaseLogHandler(logging.Handler):
                 metadata = metadata or {}
                 metadata["exception"] = self.format(record)
 
-            await self._database.create_log(
+            self._database.create_log(
                 level=record.levelname,
                 message=record.getMessage(),
                 source=source,
@@ -151,11 +90,11 @@ class DatabaseLogHandler(logging.Handler):
             # File logging will still work
             pass
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """Close the handler and cleanup resources."""
-        await super().close()
+        super().close()
         if self._database:
-            await self._database.close()
+            self._database.close()
             self._database = None
             self._initialized = False
 

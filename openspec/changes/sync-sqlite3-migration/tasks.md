@@ -16,49 +16,49 @@
 
 ### 2.1 Update dictation.py (~7 asyncio.run() calls)
 
-- [ ] 2.1.1 Remove `asyncio.run()` wrapper from dictation.py database calls
-- [ ] 2.1.2 Update any async method signatures to synchronous
-- [ ] 2.1.3 Remove `asyncio` import if no longer needed
-- [ ] 2.1.4 Run `uv run ruff check whisper_dictate/dictation.py`
+- [x] 2.1.1 Remove `asyncio.run()` wrapper from dictation.py database calls
+- [x] 2.1.2 Update any async method signatures to synchronous
+- [x] 2.1.3 Remove `asyncio` import if no longer needed
+- [x] 2.1.4 Run `uv run ruff check whisper_dictate/dictation.py`
 
 ### 2.2 Update cli.py (~9 asyncio.run() calls)
 
-- [ ] 2.2.1 Remove `asyncio.run()` wrapper from cli.py database calls
-- [ ] 2.2.2 Update any async method signatures to synchronous
-- [ ] 2.2.3 Remove `asyncio` import if no longer needed
-- [ ] 2.2.4 Run `uv run ruff check whisper_dictate/cli.py`
+- [x] 2.2.1 Remove `asyncio.run()` wrapper from cli.py database calls
+- [x] 2.2.2 Update any async method signatures to synchronous
+- [x] 2.2.3 Remove `asyncio` import if no longer needed
+- [x] 2.2.4 Run `uv run ruff check whisper_dictate/cli.py`
 
 ### 2.3 Update toggle_dictate.py (~15 asyncio.run() calls)
 
-- [ ] 2.3.1 Remove `asyncio.run()` wrapper from toggle_dictate.py database calls
-- [ ] 2.3.2 Update any async method signatures to synchronous
-- [ ] 2.3.3 Remove `asyncio` import if no longer needed
-- [ ] 2.3.4 Run `uv run ruff check whisper_dictate/toggle_dictate.py`
+- [x] 2.3.1 Remove `asyncio.run()` wrapper from toggle_dictate.py database calls
+- [x] 2.3.2 Update any async method signatures to synchronous
+- [x] 2.3.3 Remove `asyncio` import if no longer needed
+- [x] 2.3.4 Run `uv run ruff check whisper_dictate/toggle_dictate.py`
 
 ### 2.4 Update cli_helpers.py
 
-- [ ] 2.4.1 Remove `with_database` decorator entirely (no longer needed with sync DB)
-- [ ] 2.4.2 Update all callers to use `get_database()` directly instead of the decorator
-- [ ] 2.4.3 Run `uv run ruff check whisper_dictate/cli_helpers.py`
+- [x] 2.4.1 Remove `with_database` decorator entirely (no longer needed with sync DB)
+- [x] 2.4.2 Update all callers to use `get_database()` directly instead of the decorator
+- [x] 2.4.3 Run `uv run ruff check whisper_dictate/cli_helpers.py`
 
 ### 2.5 Update db_logging.py
 
-- [ ] 2.5.1 Remove `asyncio.run()` wrapper from db_logging.py database calls
-- [ ] 2.5.2 Update any async method signatures to synchronous
-- [ ] 2.5.3 Remove `asyncio` import if no longer needed
-- [ ] 2.5.4 Run `uv run ruff check whisper_dictate/db_logging.py`
+- [x] 2.5.1 Remove `asyncio.run()` wrapper from db_logging.py database calls
+- [x] 2.5.2 Update any async method signatures to synchronous
+- [x] 2.5.3 Remove `asyncio` import if no longer needed
+- [x] 2.5.4 Run `uv run ruff check whisper_dictate/db_logging.py`
 
 ### 2.6 Update audio_storage.py
 
-- [ ] 2.6.1 Remove `asyncio.run()` wrapper from audio_storage.py database calls
-- [ ] 2.6.2 Update any async method signatures to synchronous
-- [ ] 2.6.3 Remove `asyncio` import if no longer needed
-- [ ] 2.6.4 Run `uv run ruff check whisper_dictate/audio_storage.py`
+- [x] 2.6.1 Remove `asyncio.run()` wrapper from audio_storage.py database calls
+- [x] 2.6.2 Update any async method signatures to synchronous
+- [x] 2.6.3 Remove `asyncio` import if no longer needed
+- [x] 2.6.4 Run `uv run ruff check whisper_dictate/audio_storage.py`
 
 ### 2.7 Integration verification
 
-- [ ] 2.7.1 Run full application smoke test (start CLI, verify no "Event loop is closed" error)
-- [ ] 2.7.2 Run `uv run ruff check whisper_dictate/` on entire package
+- [x] 2.7.1 Run full application smoke test (start CLI, verify no "Event loop is closed" error)
+- [x] 2.7.2 Run `uv run ruff check whisper_dictate/` on entire package
 
 ## 3. Phase 3: Update Tests (Days 4-5)
 

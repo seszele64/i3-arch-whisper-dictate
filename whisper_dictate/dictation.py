@@ -1,6 +1,5 @@
 """Main dictation service orchestrating audio recording and transcription."""
 
-import asyncio
 import logging
 from pathlib import Path
 from types import TracebackType
@@ -64,8 +63,8 @@ class DictationService:
         if self._db is None:
             db_config = DatabaseConfig()
             self._db = get_database(db_config)
-            # Run async initialization
-            asyncio.run(self._db.initialize())
+            # Initialize database connection
+            self._db.initialize()
         return self._db
 
     @property
@@ -151,14 +150,12 @@ class DictationService:
 
             # Create recording entry in database (status: recording)
             try:
-                recording_id = asyncio.run(
-                    self.database.create_recording(
-                        file_path="",  # Will be updated after saving
-                        duration=actual_duration,
-                        format=audio_format,
-                        sample_rate=self.config.audio.sample_rate,
-                        channels=self.config.audio.channels,
-                    )
+                recording_id = self.database.create_recording(
+                    file_path="",  # Will be updated after saving
+                    duration=actual_duration,
+                    format=audio_format,
+                    sample_rate=self.config.audio.sample_rate,
+                    channels=self.config.audio.channels,
                 )
                 logger.debug(f"Created recording entry with ID: {recording_id}")
             except Exception as e:
@@ -176,11 +173,9 @@ class DictationService:
 
                 # Update recording entry with actual file path
                 if recording_id is not None:
-                    asyncio.run(
-                        self.database.execute(
-                            "UPDATE recordings SET file_path = ? WHERE id = ?",
-                            (relative_path, recording_id),
-                        )
+                    self.database.execute(
+                        "UPDATE recordings SET file_path = ? WHERE id = ?",
+                        (relative_path, recording_id),
                     )
             except Exception as e:
                 logger.warning(f"Failed to save audio to persistent storage: {e}")
@@ -191,14 +186,12 @@ class DictationService:
                 try:
                     # Get confidence if available (not all Whisper responses include it)
                     confidence = getattr(result, "confidence", None)
-                    asyncio.run(
-                        self.database.create_transcript(
-                            recording_id=recording_id,
-                            text=result.text,
-                            language=result.language,
-                            model_used=self.config.openai.model,
-                            confidence=confidence,
-                        )
+                    self.database.create_transcript(
+                        recording_id=recording_id,
+                        text=result.text,
+                        language=result.language,
+                        model_used=self.config.openai.model,
+                        confidence=confidence,
                     )
                     logger.debug(
                         f"Created transcript entry for recording {recording_id}"
@@ -208,17 +201,15 @@ class DictationService:
 
             # Log transcription event
             try:
-                asyncio.run(
-                    self.database.create_log(
-                        level="INFO",
-                        message=f"Transcription completed: {result.text[:100]}...",
-                        source="dictation",
-                        metadata={
-                            "recording_id": recording_id,
-                            "duration": actual_duration,
-                            "language": result.language,
-                        },
-                    )
+                self.database.create_log(
+                    level="INFO",
+                    message=f"Transcription completed: {result.text[:100]}...",
+                    source="dictation",
+                    metadata={
+                        "recording_id": recording_id,
+                        "duration": actual_duration,
+                        "language": result.language,
+                    },
                 )
             except Exception as e:
                 logger.debug(f"Failed to log transcription event: {e}")
@@ -240,13 +231,11 @@ class DictationService:
             # Log error to database
             try:
                 if recording_id is not None:
-                    asyncio.run(
-                        self.database.create_log(
-                            level="ERROR",
-                            message=f"Dictation failed: {e}",
-                            source="dictation",
-                            metadata={"recording_id": recording_id},
-                        )
+                    self.database.create_log(
+                        level="ERROR",
+                        message=f"Dictation failed: {e}",
+                        source="dictation",
+                        metadata={"recording_id": recording_id},
                     )
             except Exception:
                 pass  # Don't fail if logging fails
@@ -262,16 +251,16 @@ class DictationService:
                 except Exception as e:
                     logger.warning(f"Failed to clean up temporary file: {e}")
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """Close the database connection."""
         if self._db:
-            await self._db.close()
+            self._db.close()
             self._db = None
 
     def close_sync(self) -> None:
         """Synchronous wrapper for close()."""
         if self._db:
-            asyncio.run(self._db.close())
+            self._db.close()
             self._db = None
 
     def __enter__(self) -> "DictationService":
