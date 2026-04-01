@@ -72,13 +72,13 @@
 
 ## 4. Phase 4: Remove aiosqlite Dependency (Day 5)
 
-- [ ] 4.1 Remove `aiosqlite` from `pyproject.toml` dependencies
-- [ ] 4.2 Remove `aiosqlite` from any `requirements.txt` or lock files
-- [ ] 4.3 Clean up any remaining `async`-related imports across the codebase
-- [ ] 4.4 Search for any remaining `asyncio.run()` calls and remove
-- [ ] 4.5 Run `uv run ruff check .` on entire project
-- [ ] 4.6 Run `uv run pytest` for final verification
-- [ ] 4.7 Verify no "Event loop is closed" errors occur during full application workflow
+- [x] 4.1 Remove `aiosqlite` from `pyproject.toml` dependencies
+- [x] 4.2 Remove `aiosqlite` from any `requirements.txt` or lock files
+- [x] 4.3 Clean up any remaining `async`-related imports across the codebase
+- [x] 4.4 Search for any remaining `asyncio.run()` calls and remove
+- [x] 4.5 Run `uv run ruff check .` on entire project
+- [x] 4.6 Run `uv run pytest` for final verification
+- [x] 4.7 Verify no "Event loop is closed" errors occur during full application workflow
 
 ## 5. Verification & Rollback Preparation
 
