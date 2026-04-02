@@ -41,6 +41,7 @@ class Database:
         self._db_path = config.get_database_path()
         self._connection: Optional[sqlite3.Connection] = None
         self._lock = threading.Lock()
+        self._initialized: bool = False  # Track initialization state
 
     @property
     def path(self) -> Path:
@@ -52,11 +53,17 @@ class Database:
         return self._db_path
 
     def initialize(self) -> None:
-        """Initialize the database.
+        """Initialize the database (idempotent).
 
         Creates the database directory if it doesn't exist, establishes
-        connection, and runs migrations if needed.
+        connection, and runs migrations if needed. Safe to call multiple
+        times - subsequent calls are no-ops.
         """
+        # Guard: Already initialized
+        if self._initialized:
+            logger.debug("Database already initialized, skipping initialization")
+            return
+
         # Create database directory if it doesn't exist
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -64,6 +71,11 @@ class Database:
 
         # Connect and configure database
         self._connect()
+
+        # Mark as initialized before _configure to prevent recursion
+        # (connection() auto-initializes and _configure uses connection())
+        self._initialized = True
+
         self._configure()
 
         # Run migrations
@@ -75,24 +87,36 @@ class Database:
         logger.info("Database initialized successfully")
 
     def close(self) -> None:
-        """Close the database connection."""
+        """Close the database connection.
+
+        Resets initialization state to allow re-initialization if needed.
+        """
         if self._connection:
             self._connection.close()
             self._connection = None
+            self._initialized = False  # Reset state
             logger.debug("Database connection closed")
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
         """Get a database connection as a context manager.
 
+        Auto-initializes if not already initialized.
+
         Yields:
             sqlite3.Connection: Database connection
 
         Raises:
-            RuntimeError: If database is not initialized
+            RuntimeError: If database initialization fails
         """
+        # Auto-initialize if needed (convenience for callers)
+        if not self._initialized:
+            self.initialize()
+
         if not self._connection:
-            raise RuntimeError("Database not initialized. Call initialize() first.")
+            raise RuntimeError(
+                "Database connection not available after initialization."
+            )
 
         with self._lock:
             yield self._connection
@@ -179,14 +203,24 @@ class Database:
             return cursor.fetchall()
 
     def _connect(self) -> None:
-        """Establish database connection."""
+        """Establish database connection.
+
+        Closes any existing connection before creating a new one to
+        prevent connection leaks.
+        """
+        # Close existing connection if present (prevents leaks)
+        if self._connection:
+            try:
+                self._connection.close()
+                logger.debug("Closed previous database connection")
+            except sqlite3.Error as e:
+                logger.warning(f"Error closing previous connection: {e}")
+
         self._connection = sqlite3.connect(
             self._db_path,
             isolation_level=None,  # Autocommit mode
         )
-        # Enable WAL mode for better crash recovery
         self._connection.execute("PRAGMA journal_mode=WAL")
-        # Enable foreign keys
         self._connection.execute("PRAGMA foreign_keys=ON")
 
         logger.debug("Database connection established")
