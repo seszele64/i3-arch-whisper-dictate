@@ -38,6 +38,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
     "timeout: mark test with specific timeout override",
+    "integration: mark test as an integration test",
 ]
 
 [tool.coverage.run]
