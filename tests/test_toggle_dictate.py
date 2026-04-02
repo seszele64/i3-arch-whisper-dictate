@@ -1,6 +1,6 @@
 """Tests for toggle_dictate module."""
 
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
+from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
 import toggle_dictate
@@ -20,19 +20,19 @@ class TestTranscribeAudio:
         mock_config = MagicMock()
         mock_config.openai.model = "whisper-1"
 
-        # Create mock database with properly configured async methods
+        # Create mock database with properly configured sync methods
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.get_state = AsyncMock(return_value=42)
-        mock_db.create_recording = AsyncMock(return_value=42)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
-        mock_db.set_state = AsyncMock()
-        mock_db.delete_state = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.get_state = Mock(return_value=42)
+        mock_db.create_recording = Mock(return_value=42)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
+        mock_db.set_state = Mock()
+        mock_db.delete_state = Mock()
 
         # Mock audio storage
         mock_audio_storage = MagicMock()

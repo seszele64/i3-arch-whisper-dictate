@@ -1,6 +1,6 @@
 """Database package for whisper-dictate.
 
-This package provides async SQLite database operations using aiosqlite.
+This package provides SQLite database operations using sqlite3.
 """
 
 from whisper_dictate.database import Database, get_database

@@ -24,7 +24,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "sounddevice>=0.4.6",
     "soundfile>=0.12.1",
-    "aiosqlite>=0.20.0",
     "pytest-timeout>=2.2.0",
 ]
 
@@ -32,16 +31,14 @@ dependencies = [
 whisper-dictate = "whisper_dictate.cli:cli"
 
 [tool.pytest.ini_options]
-asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
 timeout = 30
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
-    "asyncio: mark test as an asyncio test",
     "timeout: mark test with specific timeout override",
+    "integration: mark test as an integration test",
 ]
 
 [tool.coverage.run]

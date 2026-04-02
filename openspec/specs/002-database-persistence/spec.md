@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Database initialization on first run
-The system SHALL create the SQLite database and all required tables on first run if they do not exist.
+The system SHALL use Python's standard library `sqlite3` (instead of `aiosqlite`) for all database operations. All operations are synchronous — no `asyncio.run()` wrappers needed.
 
 #### Scenario: Initialize database on first run
 - **WHEN** the application starts and the database file does not exist
-- **THEN** the system creates the database at `~/.local/share/whisper-dictate/whisper-dictate.db` with all required tables
+- **THEN** the system creates the database at `~/.local/share/whisper-dictate/whisper-dictate.db` using `sqlite3.connect()` with all required tables
 
 #### Scenario: Skip initialization when database exists
 - **WHEN** the application starts and the database file already exists
-- **THEN** the system opens the existing database without recreating tables
+- **THEN** the system opens the existing database using `sqlite3.connect()` without recreating tables
 
 #### Scenario: Create database directory if missing
 - **WHEN** the application starts and the parent directory does not exist
@@ -18,7 +18,7 @@ The system SHALL create the SQLite database and all required tables on first run
 ---
 
 ### Requirement: Database schema: recordings table
-The system SHALL use `aiosqlite` library for async SQLite operations.
+The system SHALL use `sqlite3` library (Python standard library) for synchronous SQLite operations.
 
 #### Scenario: Create recordings table with proper schema
 - **WHEN** the database is initialized
@@ -209,3 +209,58 @@ The system SHALL automatically clean up old log entries to prevent unbounded gro
 - **WHEN** cleanup is triggered (e.g., on startup or scheduled)
 - **THEN** the system deletes log entries older than the configured retention period (default: 30 days)
 - **AND** returns the count of deleted entries
+
+---
+
+### Requirement: Database connection management
+The system SHALL manage sqlite3 connections synchronously with proper lifecycle handling.
+
+#### Scenario: Singleton database instance
+- **WHEN** `get_database()` is called multiple times
+- **THEN** the system returns the same database instance (singleton pattern)
+
+#### Scenario: Lazy connection initialization
+- **WHEN** the database module is imported
+- **THEN** no connection is created until first database operation
+
+#### Scenario: Connection reuse across operations
+- **WHEN** multiple database operations are performed
+- **THEN** the system reuses the same connection for all operations
+
+#### Scenario: Close database connection
+- **WHEN** `db.close()` is called or the context manager exits
+- **THEN** the system properly closes the sqlite3 connection
+
+---
+
+### Requirement: Synchronous operation pattern
+The system SHALL provide fully synchronous database operations without async/await or `asyncio.run()` wrappers.
+
+#### Scenario: Direct function calls work without asyncio.run()
+- **WHEN** database methods are called directly (e.g., `db.get_recordings()`)
+- **THEN** the operation executes synchronously and returns the result immediately
+
+#### Scenario: No event loop required
+- **WHEN** database operations are performed
+- **THEN** no asyncio event loop is created or used
+
+#### Scenario: Thread-safe connection access
+- **WHEN** the database is accessed from the main thread
+- **THEN** the sqlite3 connection operates correctly with proper locking if needed
+
+---
+
+### Requirement: WAL mode for crash recovery
+The system SHALL enable WAL (Write-Ahead Logging) mode for crash recovery and data safety.
+
+#### Scenario: Enable WAL mode on new database
+- **WHEN** a new database connection is established
+- **THEN** the system executes `PRAGMA journal_mode=WAL` to enable WAL mode
+
+#### Scenario: Verify WAL mode is persistent
+- **WHEN** an existing database with WAL mode is reopened
+- **THEN** the system verifies `PRAGMA journal_mode` returns `wal`
+
+#### Scenario: WAL mode provides crash recovery
+- **WHEN** the application crashes or is terminated unexpectedly
+- **THEN** the WAL mode ensures no data corruption and enables recovery on restart

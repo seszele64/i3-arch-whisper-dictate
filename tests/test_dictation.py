@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, PropertyMock, AsyncMock
+from unittest.mock import patch, MagicMock, PropertyMock, Mock
 
 from whisper_dictate.dictation import DictationService
 
@@ -242,18 +242,18 @@ class TestDictationService:
         from database state before transcription, causing transcripts to not
         be saved.
         """
-        # Create mock database with properly configured async methods
+        # Create mock database with properly configured methods
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()  # AsyncMock for async initialize
-        mock_db.create_recording = AsyncMock(return_value=42)  # recording_id = 42
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
+        mock_db.initialize = Mock()  # Mock for initialize
+        mock_db.create_recording = Mock(return_value=42)  # recording_id = 42
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
 
         # Need to also set up connection as a context manager and close
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         # Mock audio storage
         mock_audio_storage = MagicMock()
@@ -327,13 +327,13 @@ class TestDictationServiceMP3Integration:
         # Mock database and audio storage
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.create_recording = AsyncMock(return_value=1)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.create_recording = Mock(return_value=1)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         mock_audio_storage = MagicMock()
         mock_audio_storage.save_audio.return_value = (
@@ -392,13 +392,13 @@ class TestDictationServiceMP3Integration:
         # Mock database and audio storage
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.create_recording = AsyncMock(return_value=1)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.create_recording = Mock(return_value=1)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         mock_audio_storage = MagicMock()
         mock_audio_storage.save_audio.return_value = (
@@ -455,13 +455,13 @@ class TestDictationServiceMP3Integration:
         # Mock database and audio storage
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.create_recording = AsyncMock(return_value=1)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.create_recording = Mock(return_value=1)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         mock_audio_storage = MagicMock()
         mock_audio_storage.save_audio.return_value = (
@@ -517,13 +517,13 @@ class TestDictationServiceMP3Integration:
         # Mock database and audio storage
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.create_recording = AsyncMock(return_value=1)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.create_recording = Mock(return_value=1)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         mock_audio_storage = MagicMock()
         mock_audio_storage.save_audio.return_value = (
@@ -578,13 +578,13 @@ class TestDictationServiceMP3Integration:
         # Mock database and audio storage
         mock_db = MagicMock()
         mock_db.path = Path("/tmp/test.db")
-        mock_db.initialize = AsyncMock()
-        mock_db.create_recording = AsyncMock(return_value=42)
-        mock_db.create_transcript = AsyncMock(return_value=1)
-        mock_db.execute = AsyncMock()
-        mock_db.create_log = AsyncMock(return_value=1)
-        mock_db.connection = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.create_recording = Mock(return_value=42)
+        mock_db.create_transcript = Mock(return_value=1)
+        mock_db.execute = Mock()
+        mock_db.create_log = Mock(return_value=1)
+        mock_db.connection = Mock()
+        mock_db.close = Mock()
 
         mock_audio_storage = MagicMock()
         mock_audio_storage.save_audio.return_value = (

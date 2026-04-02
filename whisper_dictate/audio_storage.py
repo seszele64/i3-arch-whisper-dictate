@@ -542,7 +542,7 @@ def get_orphaned_files(db) -> list[dict]:
     to find audio files that exist on disk but are not in the database.
 
     Args:
-        db: Database instance with async methods (must have list_recordings)
+        db: Database instance (must have list_recordings method)
 
     Returns:
         list[dict]: List of orphaned file info with keys:
@@ -551,8 +551,6 @@ def get_orphaned_files(db) -> list[dict]:
             - size: File size in bytes
             - modified: Last modified timestamp
     """
-    import asyncio
-
     # Get audio storage to access recordings path
     audio_storage = get_audio_storage()
     recordings_path = audio_storage.recordings_path
@@ -578,7 +576,7 @@ def get_orphaned_files(db) -> list[dict]:
     db_files: set[str] = set()
     try:
         # Use a high limit to get all recordings
-        recordings = asyncio.run(db.list_recordings(limit=100000, offset=0))
+        recordings = db.list_recordings(limit=100000, offset=0)
         for recording in recordings:
             file_path = recording.get("file_path")
             if file_path:
@@ -613,7 +611,7 @@ def cleanup_orphaned_files(db, dry_run: bool = True) -> tuple[int, int]:
     """Clean up orphaned audio files not referenced in the database.
 
     Args:
-        db: Database instance with async methods
+        db: Database instance with sync methods
         dry_run: If True, only return what would be deleted without deleting
 
     Returns:

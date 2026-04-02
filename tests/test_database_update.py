@@ -1,6 +1,6 @@
 """Tests for database update_transcript method."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -21,10 +21,10 @@ class TestUpdateTranscript:
     @pytest.fixture
     def mock_database_with_update(self):
         """Create a mock database that supports update."""
-        mock_db = AsyncMock()
+        mock_db = Mock()
 
         # Transcript for update
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -42,20 +42,20 @@ class TestUpdateTranscript:
         mock_db.update_transcript = MagicMock(return_value=True)
 
         # Initialize and close methods
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         return mock_db
 
     @pytest.fixture
     def mock_database_not_found(self):
         """Create a mock database that returns None for non-existent ID."""
-        mock_db = AsyncMock()
+        mock_db = Mock()
 
-        mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
+        mock_db.get_transcription_with_recording = Mock(return_value=None)
         mock_db.update_transcript = MagicMock(return_value=False)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         return mock_db
 
@@ -64,7 +64,7 @@ class TestUpdateTranscript:
         # Directly test the database method with mock
         mock_database_with_update.update_transcript = MagicMock(return_value=True)
 
-        # Call the async method
+        # Call the method
         result = mock_database_with_update.update_transcript(
             transcript_id=1,
             text="Updated text",
@@ -76,7 +76,7 @@ class TestUpdateTranscript:
 
     def test_update_transcript_text_and_language_mock(self, mock_database_with_update):
         """Test updating transcript text and language using mock."""
-        # Call the async method
+        # Call the method
         result = mock_database_with_update.update_transcript(
             transcript_id=1,
             text="Updated text in Spanish",
@@ -130,8 +130,8 @@ class TestHistoryUpdateCLI:
 
     def test_history_update_success(self, cli_runner):
         """Verify history update command works with valid input."""
-        mock_db = AsyncMock()
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db = Mock()
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -144,9 +144,9 @@ class TestHistoryUpdateCLI:
                 "recording_id": 1,
             }
         )
-        mock_db.update_transcript = AsyncMock(return_value=True)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.update_transcript = Mock(return_value=True)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level where the decorator imports from
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -163,8 +163,8 @@ class TestHistoryUpdateCLI:
 
     def test_history_update_cancelled(self, cli_runner):
         """Verify history update command handles cancellation."""
-        mock_db = AsyncMock()
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db = Mock()
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -177,9 +177,9 @@ class TestHistoryUpdateCLI:
                 "recording_id": 1,
             }
         )
-        mock_db.update_transcript = AsyncMock(return_value=True)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.update_transcript = Mock(return_value=True)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -197,11 +197,11 @@ class TestHistoryUpdateCLI:
 
     def test_history_update_not_found(self, cli_runner):
         """Verify history update handles non-existent ID."""
-        mock_db = AsyncMock()
-        mock_db.get_transcription_with_recording = AsyncMock(return_value=None)
-        mock_db.update_transcript = AsyncMock(return_value=False)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db = Mock()
+        mock_db.get_transcription_with_recording = Mock(return_value=None)
+        mock_db.update_transcript = Mock(return_value=False)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -216,8 +216,8 @@ class TestHistoryUpdateCLI:
 
     def test_history_update_with_language(self, cli_runner):
         """Verify history update command works with language option."""
-        mock_db = AsyncMock()
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db = Mock()
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -230,9 +230,9 @@ class TestHistoryUpdateCLI:
                 "recording_id": 1,
             }
         )
-        mock_db.update_transcript = AsyncMock(return_value=True)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.update_transcript = Mock(return_value=True)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -263,9 +263,9 @@ class TestHistoryUpdateCLI:
         from click.testing import CliRunner
 
         cli_runner = CliRunner()
-        mock_db = AsyncMock()
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db = Mock()
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
@@ -278,8 +278,8 @@ class TestHistoryUpdateCLI:
 
     def test_history_update_shows_comparison(self, cli_runner):
         """Verify history update shows old vs new text comparison."""
-        mock_db = AsyncMock()
-        mock_db.get_transcription_with_recording = AsyncMock(
+        mock_db = Mock()
+        mock_db.get_transcription_with_recording = Mock(
             return_value={
                 "id": 1,
                 "text": "Original transcription text",
@@ -292,9 +292,9 @@ class TestHistoryUpdateCLI:
                 "recording_id": 1,
             }
         )
-        mock_db.update_transcript = AsyncMock(return_value=True)
-        mock_db.initialize = AsyncMock()
-        mock_db.close = AsyncMock()
+        mock_db.update_transcript = Mock(return_value=True)
+        mock_db.initialize = Mock()
+        mock_db.close = Mock()
 
         # Patch at database module level
         with patch("whisper_dictate.cli_helpers.get_database") as mock_get_db:
