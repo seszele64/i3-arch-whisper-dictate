@@ -97,6 +97,20 @@ class Database:
             self._initialized = False  # Reset state
             logger.debug("Database connection closed")
 
+    def _ensure_initialized(self) -> None:
+        """Ensure database is initialized, auto-initializing if needed.
+
+        Raises:
+            RuntimeError: If database connection is not available after initialization.
+        """
+        if not self._initialized:
+            self.initialize()
+
+        if not self._connection:
+            raise RuntimeError(
+                "Database connection not available after initialization."
+            )
+
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
         """Get a database connection as a context manager.
@@ -107,16 +121,9 @@ class Database:
             sqlite3.Connection: Database connection
 
         Raises:
-            RuntimeError: If database initialization fails
+            RuntimeError: If database connection is not available after initialization.
         """
-        # Auto-initialize if needed (convenience for callers)
-        if not self._initialized:
-            self.initialize()
-
-        if not self._connection:
-            raise RuntimeError(
-                "Database connection not available after initialization."
-            )
+        self._ensure_initialized()
 
         with self._lock:
             yield self._connection
@@ -125,29 +132,23 @@ class Database:
     def transaction(self) -> Iterator[sqlite3.Connection]:
         """Get a database connection with transaction support.
 
-        All operations within this context are atomic - if any operation fails,
-        all changes are rolled back.
+        Auto-initializes if not already initialized. All operations within this
+        context are atomic - if any operation fails, all changes are rolled back.
 
         Yields:
-            sqlite3.Connection: Database connection with transaction
+            sqlite3.Connection: Database connection with active transaction
 
-        Example:
-            with db.transaction():
-                db.set_state("key1", "value1")
-                db.set_state("key2", "value2")
+        Raises:
+            RuntimeError: If database connection is not available after initialization.
         """
-        if not self._connection:
-            raise RuntimeError("Database not initialized. Call initialize() first.")
+        self._ensure_initialized()
 
         with self._lock:
-            # Begin explicit transaction
             self._connection.execute("BEGIN IMMEDIATE")
             try:
                 yield self._connection
-                # Commit on success
                 self._connection.commit()
             except Exception:
-                # Rollback on failure
                 self._connection.rollback()
                 raise
 

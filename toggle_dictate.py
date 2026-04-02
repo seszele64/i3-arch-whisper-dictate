@@ -102,21 +102,28 @@ def is_recording():
     """Check if currently recording.
 
     Checks database state first, falls back to file-based state for compatibility.
+
+    Returns:
+        bool: True if recording, False otherwise.
     """
     db = None
     try:
-        # Try database state first
-        try:
-            db, _ = get_db_and_storage()
-            is_recording = db.get_state(STATE_KEY_RECORDING)
-            if is_recording is True:
-                return True
-        except Exception:
-            pass  # Fall back to file-based state
+        db, _ = get_db_and_storage()
+        is_recording = db.get_state(STATE_KEY_RECORDING)
+        if is_recording is True:
+            return True
+        logging.debug("Database reports not recording, checking file-based state")
+    except Exception as e:
+        logging.warning(f"Failed to check database state, falling back to files: {e}")
     finally:
-        # Always close database connection
         if db is not None:
             db.close()
+
+    # Fallback to file-based state (legacy compatibility)
+    file_state = PID_FILE.exists() and STATE_FILE.exists()
+    if file_state:
+        logging.info("Recording detected via file-based fallback")
+    return file_state
 
 
 def get_recording_pid():
